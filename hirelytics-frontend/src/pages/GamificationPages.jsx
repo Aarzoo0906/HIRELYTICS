@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { AppFooter } from "../components/AppFooter";
+import { PageHeader } from "../components/PageHeader";
+import { PageClock } from "../components/PageClock";
 import { Sidebar } from "../components/Sidebar";
 import { Trophy, Star, Award, Medal } from "lucide-react";
 import {
@@ -16,7 +19,13 @@ const API_BASE =
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 };
 
 export const Profile = () => {
@@ -28,13 +37,30 @@ export const Profile = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
+        
+        if (!token) {
+          console.warn("No authentication token found. User may need to log in.");
+          setStats(null);
+          return;
+        }
+
         const response = await fetch(`${API_BASE}/gamification/user-stats`, {
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders()
         });
+
+        if (response.status === 401) {
+          console.error("Authentication failed. Token may be invalid or expired.");
+          localStorage.removeItem("token");
+          setStats(null);
+          return;
+        }
+
         const data = await response.json();
         setStats(response.ok && data.success ? data.stats : null);
       } catch (error) {
         console.error("Error fetching stats:", error);
+        setStats(null);
       } finally {
         setLoading(false);
       }
@@ -47,7 +73,7 @@ export const Profile = () => {
     return (
       <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
         <Sidebar />
-        <main className="flex-1 p-8 flex items-center justify-center">
+        <main className="min-w-0 flex-1 p-8 flex items-center justify-center">
           <p>Loading profile...</p>
         </main>
       </div>
@@ -57,16 +83,19 @@ export const Profile = () => {
   return (
     <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
       <Sidebar />
-      <main className="flex-1 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <section className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-6 md:p-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100">
-              {user?.name}'s Profile
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-2">
-              View your achievements and progress
-            </p>
-          </section>
+      <main className="min-w-0 flex-1 p-4 md:p-8">
+        <div className="mx-auto max-w-6xl space-y-8">
+          <PageClock />
+
+          <PageHeader
+            eyebrow="Gamification"
+            title={`${user?.name || "Your"} Profile`}
+            description="View your achievements, points, streaks, and growth at a glance."
+            icon={Trophy}
+            backFallbackTo="/dashboard"
+          />
+
+          <div className="mx-auto w-full max-w-4xl space-y-8">
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <LevelBadge
@@ -134,6 +163,9 @@ export const Profile = () => {
               ))}
             </div>
           </section>
+
+          <AppFooter />
+          </div>
         </div>
       </main>
     </div>
@@ -150,20 +182,43 @@ export const Leaderboard = () => {
     const fetchLeaderboard = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
+        
+        if (!token) {
+          console.warn("No authentication token found. User may need to log in.");
+          setLeaderboard([]);
+          setYourRank(null);
+          return;
+        }
+
         const response = await fetch(
           `${API_BASE}/gamification/leaderboard?type=${leaderboardType}&limit=100`,
-          { headers: getAuthHeaders() },
+          { 
+            headers: getAuthHeaders()
+          },
         );
+        
+        if (response.status === 401) {
+          console.error("Authentication failed. Token may be invalid or expired.");
+          localStorage.removeItem("token");
+          setLeaderboard([]);
+          setYourRank(null);
+          return;
+        }
+
         const data = await response.json();
         if (response.ok && data.success) {
           setLeaderboard(data.leaderboard || []);
           setYourRank(data.yourRank || null);
         } else {
+          console.error("Failed to fetch leaderboard:", data);
           setLeaderboard([]);
           setYourRank(null);
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error);
+        setLeaderboard([]);
+        setYourRank(null);
       } finally {
         setLoading(false);
       }
@@ -175,16 +230,19 @@ export const Leaderboard = () => {
   return (
     <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
       <Sidebar />
-      <main className="flex-1 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <section className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-6 md:p-8">
-            <div className="flex items-center gap-3 mb-2">
-              <Medal className="text-amber-600" size={32} />
-              <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100">
-                Leaderboard
-              </h1>
-            </div>
-          </section>
+      <main className="min-w-0 flex-1 p-4 md:p-8">
+        <div className="mx-auto max-w-6xl space-y-8">
+          <PageClock />
+
+          <PageHeader
+            eyebrow="Gamification"
+            title="Leaderboard"
+            description="Track top performers, compare your rank, and stay motivated with every practice session."
+            icon={Medal}
+            backFallbackTo="/dashboard"
+          />
+
+          <div className="mx-auto w-full max-w-4xl space-y-8">
 
           <div className="flex gap-2">
             {["allTime", "weekly", "daily"].map((type) => (
@@ -238,6 +296,9 @@ export const Leaderboard = () => {
               ))}
             </div>
           )}
+
+          <AppFooter />
+          </div>
         </div>
       </main>
     </div>
@@ -252,13 +313,30 @@ export const Achievements = () => {
     const fetchAchievements = async () => {
       try {
         setLoading(true);
+        const token = localStorage.getItem("token");
+        
+        if (!token) {
+          console.warn("No authentication token found. User may need to log in.");
+          setAchievements({});
+          return;
+        }
+
         const response = await fetch(`${API_BASE}/gamification/achievements`, {
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders()
         });
+
+        if (response.status === 401) {
+          console.error("Authentication failed. Token may be invalid or expired.");
+          localStorage.removeItem("token");
+          setAchievements({});
+          return;
+        }
+
         const data = await response.json();
-        setAchievements(response.ok && data.success ? data.achievements : null);
+        setAchievements(response.ok && data.success ? data.achievements : {});
       } catch (error) {
         console.error("Error fetching achievements:", error);
+        setAchievements({});
       } finally {
         setLoading(false);
       }
@@ -286,16 +364,19 @@ export const Achievements = () => {
   return (
     <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
       <Sidebar />
-      <main className="flex-1 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <section className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-6 md:p-8">
-            <div className="flex items-center gap-3 mb-2">
-              <Award className="text-purple-600" size={32} />
-              <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100">
-                Achievements
-              </h1>
-            </div>
-          </section>
+      <main className="min-w-0 flex-1 p-4 md:p-8">
+        <div className="mx-auto max-w-6xl space-y-8">
+          <PageClock />
+
+          <PageHeader
+            eyebrow="Gamification"
+            title="Achievements"
+            description="Review unlocked milestones and discover what to chase next."
+            icon={Award}
+            backFallbackTo="/dashboard"
+          />
+
+          <div className="mx-auto w-full max-w-4xl space-y-8">
 
           {loading ? (
             <div className="text-center py-8">
@@ -310,6 +391,9 @@ export const Achievements = () => {
               )}
             </div>
           ) : null}
+
+          <AppFooter />
+          </div>
         </div>
       </main>
     </div>

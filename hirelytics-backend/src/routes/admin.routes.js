@@ -1,10 +1,16 @@
 import express from "express";
-import { getSystemStats } from "../controllers/admin.controller.js";
+import {
+  broadcastAnnouncement,
+  getSystemStats,
+  getUsersUsage,
+} from "../controllers/admin.controller.js";
 import authMiddleware from "../middlewares/auth.middleware.js";
+import adminMiddleware from "../middlewares/admin.middleware.js";
 
 const router = express.Router();
 
-// Basic admin protection can be improved later
-router.get("/stats", authMiddleware, getSystemStats);
+router.get("/stats", authMiddleware, adminMiddleware, getSystemStats);
+router.get("/users", authMiddleware, adminMiddleware, getUsersUsage);
+router.post("/broadcast", authMiddleware, adminMiddleware, broadcastAnnouncement);
 
 export default router;

@@ -5,16 +5,20 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { ThemeToggle } from "./components/ThemeToggle";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { Login } from "./pages/Login";
-import { Register } from "./pages/Register";
+import { PublicOnlyRoute } from "./components/PublicOnlyRoute";
+import { LandingPage } from "./pages/LandingPage";
+import { PublicLogin } from "./pages/PublicLogin";
+import { PublicRegister } from "./pages/PublicRegister";
 import { Dashboard } from "./pages/Dashboard";
 import { InterviewSelection } from "./pages/InterviewSelection";
 import { Interview } from "./pages/Interview";
 import { Result } from "./pages/Result";
+import { Preparation } from "./pages/Preparation";
+import { ResumeWorkbench } from "./pages/ResumeWorkbench";
 import { Profile as AccountProfile } from "./pages/Profile";
 import { Settings } from "./pages/Settings";
+import { VoicePractice } from "./pages/VoicePractice";
 import {
   Profile as GamificationProfile,
   Leaderboard,
@@ -25,10 +29,24 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <ThemeToggle />
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <PublicLogin />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <PublicRegister />
+              </PublicOnlyRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
@@ -50,6 +68,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <Interview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/preparation"
+            element={
+              <ProtectedRoute>
+                <Preparation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resume-analyzer"
+            element={
+              <ProtectedRoute>
+                <ResumeWorkbench />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-practice"
+            element={
+              <ProtectedRoute>
+                <VoicePractice />
               </ProtectedRoute>
             }
           />
@@ -101,7 +143,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

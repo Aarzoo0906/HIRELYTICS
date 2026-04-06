@@ -5,19 +5,14 @@ dotenv.config();
    MODEL CONFIGURATION
 ================================= */
 
-// Primary model from env + fallback models if primary is unavailable.
-const PRIMARY_HF_MODEL = process.env.HF_MODEL || "Qwen/Qwen2.5-7B-Instruct";
-const FALLBACK_HF_MODELS = [
-  PRIMARY_HF_MODEL,
-  "Qwen/Qwen2.5-7B-Instruct",
-];
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = "models/gemini-2.5-flash-lite"; // Using Lite version for better performance
 
-const headers = {
-  Authorization: `Bearer ${process.env.HF_API_KEY}`,
-  "Content-Type": "application/json",
-};
+if (!GEMINI_API_KEY) {
+  console.warn("⚠️  WARNING: GEMINI_API_KEY is not set. Using fallback questions for interviews.");
+}
 
-const parseHFResponse = async (response, modelName) => {
+const parseGeminiResponse = async (response) => {
   const raw = await response.text();
   let data;
 
@@ -25,76 +20,63 @@ const parseHFResponse = async (response, modelName) => {
     data = JSON.parse(raw);
   } catch {
     if (!response.ok) {
-      if (response.status === 404 || response.status === 400) {
-        throw new Error(
-          `Model '${modelName}' is not available on Hugging Face router.`
-        );
-      }
       throw new Error(
-        `Hugging Face request failed (${response.status}): ${raw.slice(0, 180)}`
+        `Gemini API request failed (${response.status}): ${raw.slice(0, 180)}`
       );
     }
-    throw new Error(`Invalid JSON from Hugging Face: ${raw.slice(0, 180)}`);
+    throw new Error(`Invalid JSON from Gemini: ${raw.slice(0, 180)}`);
   }
 
   if (!response.ok) {
-    if (response.status === 404 || response.status === 400) {
-      throw new Error(
-        `Model '${modelName}' is not available on Hugging Face router.`
-      );
-    }
     throw new Error(
-      data?.error || `Hugging Face request failed (${response.status})`
+      data?.error?.message || `Gemini API request failed (${response.status})`
     );
   }
 
   if (data?.error) {
-    throw new Error(data.error);
+    throw new Error(data.error.message || JSON.stringify(data.error));
   }
 
   return data;
 };
 
-const callHFWithFallback = async (payload) => {
-  const tried = new Set();
-  const candidates = FALLBACK_HF_MODELS.filter((model) => {
-    if (!model || tried.has(model)) return false;
-    tried.add(model);
-    return true;
-  });
-
-  let lastError = null;
-
-  for (const model of candidates) {
-    try {
-      const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model,
-          ...payload,
-        }),
-      });
-
-      const data = await parseHFResponse(response, model);
-      return { data, model };
-    } catch (error) {
-      lastError = error;
-      const message = String(error.message || "").toLowerCase();
-      const retryableModelError =
-        message.includes("not available") ||
-        message.includes("not found") ||
-        message.includes("unknown error");
-      if (!retryableModelError) {
-        throw error;
-      }
-    }
+export const callGeminiAPI = async (
+  messages,
+  maxTokens = 1000,
+  temperature = 0.7,
+) => {
+  if (!GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY not configured. Fallback questions will be used.");
   }
 
-  throw (
-    lastError ||
-    new Error("No usable Hugging Face model found. Set HF_MODEL in .env.")
-  );
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: messages.map((msg) => ({
+            role: msg.role === "user" ? "user" : "model",
+            parts: [{ text: msg.content }],
+          })),
+          generationConfig: {
+            maxOutputTokens: maxTokens,
+            temperature: temperature,
+            topP: 0.95,
+            topK: 64,
+          },
+        }),
+      }
+    );
+
+    const data = await parseGeminiResponse(response);
+    return data;
+  } catch (error) {
+    throw new Error(`Gemini API call failed: ${error.message}`);
+  }
 };
 
 const buildLocalFallbackQuestions = (type, difficulty, topic) => {
@@ -120,37 +102,22 @@ const buildLocalFallbackQuestions = (type, difficulty, topic) => {
 ================================= */
 export const generateQuestions = async (type, difficulty, topic) => {
   try {
-    const prompt = `
-You are a professional interview question generator.
+    const prompt = `Generate 5 ${difficulty} level ${type} interview questions about ${topic}. 
+Return ONLY numbered questions from 1 to 5, one per line. No explanations.`;
 
-Strictly generate 5 ${difficulty} level interview questions.
+    const data = await callGeminiAPI(
+      [{ role: "user", content: prompt }],
+      800,
+      0.9
+    );
 
-Interview Type: ${type}
-Topic: ${topic}
-
-IMPORTANT RULES:
-- Questions MUST be strictly related to ${topic}
-- Do NOT generate generic questions
-- Make them practical and scenario-based if possible
-- Return ONLY numbered questions from 1 to 5
-- Do NOT add explanations or extra text
-`;
-
-    const { data } = await callHFWithFallback({
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 350,
-      temperature: 0.9,
-    });
-
-    const rawText = data?.choices?.[0]?.message?.content || "";
+    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     if (!rawText.trim()) {
-      throw new Error("Model returned empty generated_text");
+      throw new Error("Model returned empty response");
     }
 
-    const text = rawText.startsWith(prompt)
-      ? rawText.slice(prompt.length).trim()
-      : rawText.trim();
+    const text = rawText.trim();
 
     // Support common list formats: "1. ...", "1) ...", "- ..."
     const parsed = text
@@ -183,8 +150,7 @@ export const evaluateAnswers = async (questions, type) => {
       .map((q, i) => `Question ${i + 1}: ${q.question}\nAnswer: ${q.answer}`)
       .join("\n\n");
 
-    const prompt = `
-You are a professional interview evaluator.
+    const prompt = `You are a professional interview evaluator.
 
 Interview Type: ${type}
 
@@ -194,16 +160,15 @@ Return:
 Score: (out of 100)
 Feedback: (short paragraph)
 
-${formatted}
-`;
+${formatted}`;
 
-    const { data } = await callHFWithFallback({
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 300,
-      temperature: 0.7,
-    });
+    const data = await callGeminiAPI(
+      [{ role: "user", content: prompt }],
+      300,
+      0.7
+    );
 
-    const feedback = data?.choices?.[0]?.message?.content || "";
+    const feedback = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
     // Extract score from text (basic parsing)
     const scoreMatch = feedback.match(/(\d{1,3})/);

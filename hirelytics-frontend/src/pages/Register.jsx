@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { AppFooter } from "../components/AppFooter";
+import { PageControls } from "../components/PageControls";
 
 export const Register = () => {
   const [name, setName] = useState("");
@@ -38,8 +40,12 @@ export const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-8">
+    <div className="flex min-h-screen flex-col bg-slate-100 dark:bg-slate-900">
+      <div className="sticky top-0 z-40">
+        <PageControls backFallbackTo="/" />
+      </div>
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center p-4">
+        <div className="mx-auto w-full max-w-md bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             Create Account
@@ -112,7 +118,9 @@ export const Register = () => {
             Sign In
           </Link>
         </p>
+        </div>
       </div>
+      <AppFooter compact />
     </div>
   );
 };

@@ -6,6 +6,7 @@ const interviewSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
     category: {
@@ -13,9 +14,21 @@ const interviewSchema = new mongoose.Schema(
       required: true,
     },
 
+    type: {
+      type: String,
+      enum: ["technical", "hr"],
+      default: "technical",
+    },
+
+    difficulty: {
+      type: String,
+      enum: ["easy", "medium", "hard"],
+      default: "medium",
+    },
+
     questions: [
       {
-        question: String,
+        questionIndex: Number,
         answer: String,
         score: Number,
         feedback: String,
@@ -25,6 +38,23 @@ const interviewSchema = new mongoose.Schema(
     totalScore: {
       type: Number,
       default: 0,
+      index: true,
+    },
+
+    totalTime: {
+      type: Number,
+      default: 0,
+    },
+
+    timePerQuestion: {
+      type: Number,
+      default: 0,
+    },
+
+    status: {
+      type: String,
+      enum: ["completed", "incomplete", "timeout"],
+      default: "completed",
     },
   },
   { timestamps: true }

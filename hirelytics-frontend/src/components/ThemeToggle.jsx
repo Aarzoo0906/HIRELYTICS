@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
-export const ThemeToggle = () => {
-  const [isDark, setIsDark] = useState(false);
+export const ThemeToggle = ({ className = "", iconOnly = false }) => {
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
-    const isDarkMode = localStorage.getItem("darkMode") === "true";
+    const storedTheme = localStorage.getItem("darkMode");
+    const isLandingPage = window.location.pathname === "/";
+    const isDarkMode =
+      storedTheme === null ? isLandingPage : storedTheme === "true";
     setIsDark(isDarkMode);
+    localStorage.setItem("darkMode", `${isDarkMode}`);
     if (isDarkMode) {
       document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
     }
   }, []);
 
@@ -27,8 +33,9 @@ export const ThemeToggle = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="fixed top-4 right-4 md:top-5 md:right-6 p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors z-50 shadow-sm backdrop-blur"
+      className={`inline-flex items-center justify-center transition-colors ${iconOnly ? "h-10 w-10 rounded-full text-current opacity-80 hover:bg-white/10 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 dark:hover:bg-white/10" : "rounded-xl border border-slate-200 bg-white/95 p-2.5 text-slate-800 shadow-sm backdrop-blur hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 dark:hover:bg-slate-800"} ${className}`.trim()}
       aria-label="Toggle theme"
+      title="Toggle theme"
     >
       {isDark ? <Sun size={20} /> : <Moon size={20} />}
     </button>

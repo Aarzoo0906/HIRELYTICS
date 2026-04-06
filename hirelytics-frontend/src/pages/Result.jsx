@@ -1,4 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { AppFooter } from "../components/AppFooter";
+import { PageClock } from "../components/PageClock";
+import { PageHeader } from "../components/PageHeader";
 import { Sidebar } from "../components/Sidebar";
 import {
   CheckCircle,
@@ -10,8 +13,10 @@ import {
   Linkedin,
 } from "lucide-react";
 import jsPDF from "jspdf";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { InterviewResultCard } from "../components/GamificationComponents";
+import { useAuth } from "../context/AuthContext";
+import { analyzeInterviewPerformance } from "../utils/interviewAnalysis";
 
 export const Result = () => {
   const location = useLocation();
@@ -23,9 +28,11 @@ export const Result = () => {
     interviewType,
     difficulty,
     isTimeUp,
+    analysis: initialAnalysis,
   } = location.state || {};
   const [shareSuccess, setShareSuccess] = useState(false);
   const [gamificationData, setGamificationData] = useState(null);
+  const { user, updateUser } = useAuth();
 
   const API_BASE =
     import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
@@ -44,7 +51,16 @@ export const Result = () => {
     return { level: "Needs Work", color: "text-red-600 dark:text-red-400" };
   };
 
-  const performance = getPerformanceLevel(score);
+  const analysis = useMemo(
+    () => initialAnalysis || analyzeInterviewPerformance({ answers, questions }),
+    [answers, initialAnalysis, questions],
+  );
+
+  const stableScore =
+    Number.isFinite(score) && score > 0
+      ? Math.round(score)
+      : analysis?.overallScore ?? 0;
+  const performance = getPerformanceLevel(stableScore);
 
   useEffect(() => {
     const syncGamification = async () => {
@@ -59,7 +75,7 @@ export const Result = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            score: Math.round(score),
+            score: stableScore,
             difficulty,
             timeTaken: null,
           }),
@@ -71,6 +87,15 @@ export const Result = () => {
             pointsEarned: pointsData.pointsEarned || 0,
             bonuses: pointsData.bonuses || {},
             levelUp: Boolean(pointsData.newLevel),
+          });
+
+          updateUser({
+            ...user,
+            points: pointsData.totalPoints ?? user?.points ?? 0,
+            totalPoints: pointsData.totalPoints ?? user?.totalPoints ?? 0,
+            level: pointsData.currentLevel ?? user?.level ?? 1,
+            currentLevelPoints:
+              pointsData.progressToNextLevel ?? user?.currentLevelPoints ?? 0,
           });
         }
 
@@ -86,25 +111,17 @@ export const Result = () => {
     };
 
     syncGamification();
-  }, [API_BASE, difficulty, score]);
+  }, [API_BASE, difficulty, stableScore]);
 
-  const feedbackItems = [
-    {
-      title: "Answer Completeness",
-      score: Math.min(score + Math.random() * 10, 100),
-      icon: CheckCircle,
-    },
-    {
-      title: "Communication Clarity",
-      score: Math.min(score - 5 + Math.random() * 10, 100),
-      icon: TrendingUp,
-    },
-    {
-      title: "Confidence Level",
-      score: Math.min(score - 10 + Math.random() * 10, 100),
-      icon: AlertCircle,
-    },
-  ];
+  const feedbackItems = analysis.metrics.map((item) => ({
+    ...item,
+    icon:
+      item.title === "Answer Completeness"
+        ? CheckCircle
+        : item.title === "Communication Clarity"
+          ? TrendingUp
+          : AlertCircle,
+  }));
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -129,7 +146,7 @@ export const Result = () => {
 
     doc.setFontSize(18);
     doc.setTextColor(0);
-    doc.text(`Score: ${Math.round(score)}/100`, 20, yPosition);
+    doc.text(`Score: ${stableScore}/100`, 20, yPosition);
     yPosition += 10;
 
     doc.setFontSize(12);
@@ -167,7 +184,7 @@ export const Result = () => {
   };
 
   const handleShareTwitter = () => {
-    const text = `🎉 Just completed a ${difficulty} ${interviewType} interview on Hirelytics! Scored ${Math.round(score)}/100. Ready to ace that interview! 💪 #InterviewPrep #Hirelytics`;
+    const text = `🎉 Just completed a ${difficulty} ${interviewType} interview on Hirelytics! Scored ${stableScore}/100. Ready to ace that interview! 💪 #InterviewPrep #Hirelytics`;
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
     setShareSuccess(true);
@@ -175,7 +192,7 @@ export const Result = () => {
   };
 
   const handleShareLinkedIn = () => {
-    const text = `I just completed a ${difficulty} level ${interviewType} interview on Hirelytics and scored ${Math.round(score)}/100! Continuously improving my interview skills. #InterviewPrep #CareerDevelopment`;
+    const text = `I just completed a ${difficulty} level ${interviewType} interview on Hirelytics and scored ${stableScore}/100! Continuously improving my interview skills. #InterviewPrep #CareerDevelopment`;
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=hirelytics.com&title=Interview Results&summary=${encodeURIComponent(text)}`;
     window.open(url, "_blank");
     setShareSuccess(true);
@@ -183,7 +200,7 @@ export const Result = () => {
   };
 
   const handleCopyLink = () => {
-    const text = `I scored ${Math.round(score)}/100 on a ${difficulty} ${interviewType} interview using Hirelytics!`;
+    const text = `I scored ${stableScore}/100 on a ${difficulty} ${interviewType} interview using Hirelytics!`;
     navigator.clipboard.writeText(text);
     setShareSuccess(true);
     setTimeout(() => setShareSuccess(false), 2000);
@@ -193,14 +210,22 @@ export const Result = () => {
     <div className="flex min-h-screen bg-slate-100 dark:bg-slate-900">
       <Sidebar />
 
-      <main className="flex-1 p-4 md:p-8">
+      <main className="min-w-0 flex-1 p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-              Interview Complete!
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mb-8">
-              Here's your performance summary
+          <PageClock />
+          <PageHeader
+            eyebrow="Interview Summary"
+            title="Interview Complete!"
+            description="Here is your performance summary and improvement breakdown from this round."
+            icon={CheckCircle}
+            backFallbackTo="/interview-selection"
+          />
+          <section className="rounded-3xl border border-slate-200 bg-white px-8 py-8 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <h2 className="mb-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+              Your Score
+            </h2>
+            <p className="mb-8 text-slate-600 dark:text-slate-400">
+              Here's your performance summary.
             </p>
 
             {isTimeUp && (
@@ -214,7 +239,7 @@ export const Result = () => {
             <div className="mb-8">
               <div className="inline-flex items-baseline gap-4">
                 <span className={`text-7xl font-bold ${performance.color}`}>
-                  {Math.round(score)}
+                  {stableScore}
                 </span>
                 <span className="text-3xl font-semibold text-slate-500 dark:text-slate-400">
                   / 100
@@ -229,10 +254,10 @@ export const Result = () => {
               Great effort! Review the feedback below to improve your future
               interviews.
             </p>
-          </section>
+            </section>
 
           <section>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4 pb-3 border-b-2 border-teal-200 dark:border-teal-800">
               Performance Metrics
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -241,7 +266,7 @@ export const Result = () => {
                 return (
                   <div
                     key={item.title}
-                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+                    className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 hover:scale-105 transition-all duration-300 cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="font-semibold text-slate-900 dark:text-slate-100">
@@ -254,7 +279,7 @@ export const Result = () => {
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                        {Math.round(item.score)}
+                        {item.score}
                       </span>
                       <span className="text-slate-500 dark:text-slate-400">
                         %
@@ -266,6 +291,9 @@ export const Result = () => {
                         style={{ width: `${item.score}%` }}
                       ></div>
                     </div>
+                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                      {item.detail}
+                    </p>
                   </div>
                 );
               })}
@@ -278,7 +306,7 @@ export const Result = () => {
                 Gamification Rewards
               </h2>
               <InterviewResultCard
-                score={Math.round(score)}
+                score={stableScore}
                 difficulty={difficulty}
                 pointsEarned={gamificationData.pointsEarned}
                 bonuses={gamificationData.bonuses}
@@ -297,9 +325,11 @@ export const Result = () => {
                   Strengths
                 </h3>
                 <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
-                  <li>Clear and structured responses</li>
-                  <li>Good use of specific examples</li>
-                  <li>Professional tone maintained throughout</li>
+                  {analysis.strengths.length > 0 ? (
+                    analysis.strengths.map((item) => <li key={item}>{item}</li>)
+                  ) : (
+                    <li>Complete more answers to unlock tailored strengths.</li>
+                  )}
                 </ul>
               </div>
 
@@ -308,11 +338,9 @@ export const Result = () => {
                   Areas to Improve
                 </h3>
                 <ul className="list-disc list-inside text-slate-600 dark:text-slate-400 space-y-1">
-                  <li>Try to expand on your examples with more detail</li>
-                  <li>Practice pacing to avoid rushed answers</li>
-                  <li>
-                    Include more metrics or quantifiable results when possible
-                  </li>
+                  {analysis.improvements.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -375,6 +403,8 @@ export const Result = () => {
               Take Another Interview
             </button>
           </section>
+
+          <AppFooter />
         </div>
       </main>
     </div>

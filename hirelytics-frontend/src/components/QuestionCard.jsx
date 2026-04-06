@@ -6,9 +6,9 @@ export const QuestionCard = ({
   onAnswerChange,
   onNext,
   isLast,
-  isTimeUp,
 }) => {
   const [charCount, setCharCount] = useState(answer.length);
+  const hasAnswer = answer.trim().length > 0;
 
   const handleChange = (e) => {
     const value = e.target.value;
@@ -36,8 +36,7 @@ export const QuestionCard = ({
             value={answer}
             onChange={handleChange}
             placeholder="Type your answer here..."
-            disabled={isTimeUp}
-            className="w-full h-48 p-4 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-48 p-4 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
           />
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
             {charCount} characters
@@ -46,7 +45,7 @@ export const QuestionCard = ({
 
         <button
           onClick={onNext}
-          disabled={isTimeUp && charCount === 0}
+          disabled={!hasAnswer}
           className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLast ? "Submit Interview" : "Next Question"}

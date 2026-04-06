@@ -1,9 +1,19 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { AppFooter } from "../components/AppFooter";
+import { PageHeader } from "../components/PageHeader";
+import { PageClock } from "../components/PageClock";
 import { Sidebar } from "../components/Sidebar";
 import { QuestionCard } from "../components/QuestionCard";
-import { ChevronLeft, ChevronRight, Clock, AlertCircle } from "lucide-react";
+import { analyzeInterviewPerformance } from "../utils/interviewAnalysis";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  AlertCircle,
+  Briefcase,
+} from "lucide-react";
 
 export const Interview = () => {
   const navigate = useNavigate();
@@ -11,39 +21,12 @@ export const Interview = () => {
   const { addInterviewRecord } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timePerQuestion, setTimePerQuestion] = useState(60);
-  const [totalTime, setTotalTime] = useState(0);
-  const [isTimeUp, setIsTimeUp] = useState(false);
-  const [showTimeWarning, setShowTimeWarning] = useState(false);
 
   const {
     interviewType = "hr",
     difficulty = "easy",
     questions: generatedQuestions = [],
   } = location.state || {};
-  const TIME_LIMIT = 60;
-
-  useEffect(() => {
-    if (isTimeUp) return;
-
-    const timer = setInterval(() => {
-      setTimePerQuestion((prev) => {
-        if (prev <= 1) {
-          setIsTimeUp(true);
-          setShowTimeWarning(false);
-          return 0;
-        }
-        if (prev === 11) {
-          setShowTimeWarning(true);
-        }
-        return prev - 1;
-      });
-      setTotalTime((prev) => prev + 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isTimeUp]);
-
   const technicalQuestions = {
     easy: [
       {
@@ -225,49 +208,45 @@ export const Interview = () => {
     });
   };
 
-  const handleNext = () => {
-    if (currentQuestion === questions.length - 1 || isTimeUp) {
-      const score = calculateScore();
-      addInterviewRecord({
+  const handleNext = async () => {
+    if (!answers[currentQuestion]?.trim()) {
+      return;
+    }
+
+    if (currentQuestion === questions.length - 1) {
+      const analysis = analyzeInterviewPerformance({ answers, questions });
+      const localScore = analysis.overallScore;
+      const savedInterview = await addInterviewRecord({
         type: interviewType,
         difficulty,
-        score,
-        timePerQuestion: TIME_LIMIT - timePerQuestion,
-        totalTime,
+        score: localScore,
         answers,
+        questions,
       });
+
+      const finalScore = savedInterview?.score ?? localScore;
       navigate("/result", {
         state: {
-          score,
+          score: finalScore,
           answers,
           questions,
           interviewType,
           difficulty,
-          totalTime,
-          isTimeUp,
+          analysis:
+            finalScore === localScore
+              ? analysis
+              : analyzeInterviewPerformance({ answers, questions }),
         },
       });
     } else {
       setCurrentQuestion(currentQuestion + 1);
-      setTimePerQuestion(TIME_LIMIT);
-      setShowTimeWarning(false);
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
-      setTimePerQuestion(TIME_LIMIT);
-      setShowTimeWarning(false);
     }
-  };
-
-  const calculateScore = () => {
-    let score = 0;
-    Object.values(answers).forEach((answer) => {
-      score += Math.min(Math.ceil(answer.length / 50), 20);
-    });
-    return Math.min(score, 100);
   };
 
   const getDifficultyColor = () => {
@@ -278,45 +257,46 @@ export const Interview = () => {
     };
     return colors[difficulty] || colors.easy;
   };
-
-  const formatTime = (seconds) => {
-    return `${seconds.toString().padStart(2, "0")}s`;
-  };
+  const isTimeUp = false;
+  const showTimeWarning = false;
+  const timePerQuestion = 0;
+  const totalTime = 0;
+  const formatTime = (seconds) => `${seconds.toString().padStart(2, "0")}s`;
 
   return (
     <div className="flex min-h-screen bg-slate-100 dark:bg-slate-900">
       <Sidebar />
 
-      <main className="flex-1 p-4 md:p-8">
-        <div className="max-w-4xl w-full mx-auto space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                Interview Session
-              </h1>
-              <div className="flex gap-3 mt-2">
-                <span className="text-sm text-slate-600 dark:text-slate-400">
-                  Type:{" "}
-                  <span className="font-semibold capitalize">
-                    {interviewType}
-                  </span>
-                </span>
-                <span
-                  className={`text-sm font-semibold capitalize ${getDifficultyColor()}`}
-                >
-                  Level: {difficulty}
-                </span>
-              </div>
+      <main className="min-w-0 flex-1 p-4 md:p-8">
+        <div className="mx-auto w-full max-w-6xl space-y-6">
+          <PageClock />
+
+          <PageHeader
+            eyebrow="Live Interview"
+            title="Interview Session"
+            description={`Answer confidently and keep your pace steady. Type: ${interviewType}. Difficulty: ${difficulty}.`}
+            icon={Briefcase}
+            backFallbackTo="/interview-selection"
+          />
+
+          <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 md:flex-row md:items-center md:justify-between">
+            <div className="flex gap-3">
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                Type: <span className="font-semibold capitalize">{interviewType}</span>
+              </span>
+              <span
+                className={`rounded-full bg-slate-100 px-3 py-1.5 text-sm dark:bg-slate-800 ${getDifficultyColor()}`}
+              >
+                Level: {difficulty}
+              </span>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Total Time
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {Math.floor(totalTime / 60)}:{formatTime(totalTime % 60)}
-                </p>
-              </div>
+            <div className="text-left md:text-right">
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+                No timer in this session
+              </p>
+              <p className="text-base text-slate-900 dark:text-slate-100">
+                You can move ahead only after writing an answer.
+              </p>
             </div>
           </div>
 
@@ -397,7 +377,6 @@ export const Interview = () => {
             onAnswerChange={handleAnswerChange}
             onNext={handleNext}
             isLast={currentQuestion === questions.length - 1}
-            isTimeUp={isTimeUp}
           />
 
           <div className="flex justify-between gap-4">
@@ -416,14 +395,15 @@ export const Interview = () => {
             </div>
             <button
               onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white transition-colors"
+              disabled={!answers[currentQuestion]?.trim()}
+              className="flex items-center gap-2 px-6 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {currentQuestion === questions.length - 1 || isTimeUp
-                ? "Submit"
-                : "Next"}
+              {currentQuestion === questions.length - 1 ? "Submit" : "Next"}
               <ChevronRight size={20} />
             </button>
           </div>
+
+          <AppFooter />
         </div>
       </main>
     </div>

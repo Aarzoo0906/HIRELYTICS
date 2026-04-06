@@ -1,16 +1,27 @@
 import { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import { AppFooter } from "../components/AppFooter";
+import { PageHeader } from "../components/PageHeader";
+import { PageClock } from "../components/PageClock";
 import { Sidebar } from "../components/Sidebar";
-import { Mail, Calendar, User as UserIcon, Zap, Camera } from "lucide-react";
+import {
+  Mail,
+  Calendar,
+  User as UserIcon,
+  Zap,
+  Camera,
+} from "lucide-react";
+import { getValidImageSrc } from "../utils/profileImage";
 
 export const Profile = () => {
   const { user, updateUser } = useAuth();
   const [profilePhoto, setProfilePhoto] = useState(
-    localStorage.getItem("profilePhoto") || null,
+    getValidImageSrc(localStorage.getItem("profilePhoto")),
   );
   const [previewPhoto, setPreviewPhoto] = useState(profilePhoto);
   const [isEditingPhoto, setIsEditingPhoto] = useState(false);
   const fileInputRef = useRef(null);
+  const fallbackInitial = user?.name?.trim()?.charAt(0)?.toUpperCase() || "U";
 
   const stats = [
     { icon: Zap, label: "Total Points", value: user?.points || 0 },
@@ -33,8 +44,13 @@ export const Profile = () => {
   };
 
   const handleSavePhoto = () => {
-    localStorage.setItem("profilePhoto", previewPhoto);
-    setProfilePhoto(previewPhoto);
+    const nextPhoto = getValidImageSrc(previewPhoto);
+    if (nextPhoto) {
+      localStorage.setItem("profilePhoto", nextPhoto);
+    } else {
+      localStorage.removeItem("profilePhoto");
+    }
+    setProfilePhoto(nextPhoto);
     setIsEditingPhoto(false);
   };
 
@@ -54,23 +70,21 @@ export const Profile = () => {
     <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
       <Sidebar />
 
-      <main className="flex-1 p-4 md:p-8 lg:p-10">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <section className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-6 md:p-8 shadow-sm">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-                User Settings
-              </p>
-              <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                Profile
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
-                Manage your personal information and preferences
-              </p>
-            </div>
-          </section>
+      <main className="min-w-0 flex-1 p-4 md:p-8 lg:p-10">
+        <div className="mx-auto max-w-6xl space-y-8">
+          <PageClock />
 
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
+          <PageHeader
+            eyebrow="User Settings"
+            title="Profile"
+            description="Manage your personal information and preferences."
+            icon={UserIcon}
+            backFallbackTo="/dashboard"
+          />
+
+          <div className="mx-auto w-full max-w-4xl space-y-8">
+
+          <section className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 md:p-8 shadow-md hover:shadow-lg hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-300">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
               <div className="flex items-end gap-6">
                 <div className="relative">
@@ -78,12 +92,17 @@ export const Profile = () => {
                     <img
                       src={previewPhoto}
                       alt={user?.name}
+                      onError={() => {
+                        setPreviewPhoto(null);
+                        setProfilePhoto(null);
+                        localStorage.removeItem("profilePhoto");
+                      }}
                       className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover border-4 border-teal-200 dark:border-teal-800"
                     />
                   ) : (
                     <div className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-900 dark:to-teal-800 rounded-2xl flex items-center justify-center border-4 border-teal-200 dark:border-teal-800">
                       <span className="text-4xl md:text-5xl font-bold text-teal-600 dark:text-teal-400">
-                        {user?.name?.charAt(0).toUpperCase()}
+                        {fallbackInitial}
                       </span>
                     </div>
                   )}
@@ -148,8 +167,8 @@ export const Profile = () => {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+          <section className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 md:p-8 shadow-md hover:shadow-lg hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-300">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 pb-4 border-b-2 border-teal-200 dark:border-teal-800">
               Account Details
             </h3>
             <div className="space-y-4">
@@ -181,7 +200,7 @@ export const Profile = () => {
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 pb-3 border-b-2 border-teal-200 dark:border-teal-800">
               Performance Statistics
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -190,7 +209,7 @@ export const Profile = () => {
                 return (
                   <div
                     key={stat.label}
-                    className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+                    className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 shadow-sm hover:shadow-md hover:border-teal-300 dark:hover:border-teal-700 hover:scale-105 transition-all duration-300 cursor-pointer"
                   >
                     <div className="flex items-start justify-between">
                       <div>
@@ -212,8 +231,8 @@ export const Profile = () => {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 md:p-8">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+          <section className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 md:p-8 shadow-md hover:shadow-lg hover:border-teal-300 dark:hover:border-teal-700 transition-all duration-300">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 pb-4 border-b-2 border-teal-200 dark:border-teal-800">
               Learning Progress
             </h2>
             <div className="space-y-6">
@@ -259,6 +278,9 @@ export const Profile = () => {
               </div>
             </div>
           </section>
+
+          <AppFooter />
+          </div>
         </div>
       </main>
     </div>

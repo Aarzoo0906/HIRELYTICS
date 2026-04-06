@@ -11,11 +11,29 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
+      trim: true,
     },
 
     password: {
       type: String,
       required: true,
+    },
+
+    role: {
+      type: String,
+      enum: ["admin", "user"],
+      default: "user",
+    },
+
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+
+    passwordChangedAt: {
+      type: Date,
+      default: null,
     },
 
     points: {
@@ -34,6 +52,11 @@ const userSchema = new mongoose.Schema(
     },
 
     interviewsTaken: {
+      type: Number,
+      default: 0,
+    },
+
+    totalTimeSpentSeconds: {
       type: Number,
       default: 0,
     },
