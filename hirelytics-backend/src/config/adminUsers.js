@@ -1,4 +1,4 @@
-export const DEFAULT_ADMIN_PASSWORD = "0906";
+export const DEFAULT_ADMIN_PASSWORD = "1234";
 
 export const ALLOWED_ADMIN_USERS = [
   {

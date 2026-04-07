@@ -3,6 +3,7 @@ dotenv.config();
 
 import app from "./src/app.js";
 import connectDB from "./src/config/db.js";
+import { ensureAdminUsers } from "./src/services/adminUser.service.js";
 import { logDiagnostics } from "./src/utils/diagnostics.js";
 
 const PORT = process.env.PORT || 5000;
@@ -21,7 +22,9 @@ console.log("  Frontend URL:", process.env.FRONTEND_URL || "http://localhost:517
 
 // Connect DB and start server
 connectDB()
-  .then(() => {
+  .then(async () => {
+    await ensureAdminUsers();
+
     app.listen(PORT, () => {
       console.log(`\n🚀 Server running on port ${PORT}`);
       console.log(`📍 Frontend: http://localhost:5173`);
