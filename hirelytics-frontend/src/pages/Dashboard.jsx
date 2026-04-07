@@ -7,6 +7,7 @@ import { PageClock } from "../components/PageClock";
 import { PageControls } from "../components/PageControls";
 import { Sidebar } from "../components/Sidebar";
 import { StatCard } from "../components/StatCard";
+import { formatDisplayName } from "../utils/name";
 import { getValidImageSrc } from "../utils/profileImage";
 import {
   Award,
@@ -24,15 +25,9 @@ export const Dashboard = () => {
   const { user } = useAuth();
   const profilePhoto = getValidImageSrc(localStorage.getItem("profilePhoto"));
 
-  const formatNameCase = (value = "") =>
-    `${value}`
-      .trim()
-      .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-
   const questionsCount = 3;
   const firstName = useMemo(
-    () => (user?.name ? formatNameCase(user.name.split(" ")[0]) : "There"),
+    () => (user?.name ? formatDisplayName(user.name.split(" ")[0]) : "There"),
     [user?.name],
   );
 

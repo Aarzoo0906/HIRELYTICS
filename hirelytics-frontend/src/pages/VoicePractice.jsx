@@ -26,25 +26,25 @@ const PARAGRAPH_LIBRARY = [
   {
     id: "para-1",
     title: "Clear Communication in Interviews",
-    text: "Clear communication helps candidates explain their abilities in a way that interviewers can easily understand. When answering a question, it is useful to begin with the main point, support it with a brief example, and end with a short conclusion. This structure keeps the response organized and professional. Students often focus only on content, but delivery is equally important. Speaking too quickly, using filler words, or skipping important details can weaken a strong answer. A calm pace, complete sentences, and steady confidence create a better impression. Practicing this skill regularly improves both language fluency and self-belief. Over time, candidates become better at presenting their ideas naturally, which helps them perform more effectively in real interviews and professional conversations.",
+    text: "Clear communication helps interviewers understand your ideas quickly. A strong answer should begin with the main point, include one simple example, and end with a short conclusion. Candidates should speak at a calm pace and avoid filler words. With regular practice, answers become more natural, confident, and professional.",
     complexWords: ["organized", "professional", "equally", "fluency", "effectively"],
   },
   {
     id: "para-2",
     title: "Discussing a Project",
-    text: "When speaking about a project in an interview, candidates should explain the situation in a logical sequence. First, describe the problem that needed to be solved. Then explain the approach you selected, the tools or technologies you used, and the specific responsibilities you handled. After that, mention the final result and what you learned from the experience. This method helps the interviewer understand both your technical ability and your problem-solving mindset. A good response should be detailed enough to sound credible, but concise enough to remain clear. Students who practice speaking about projects become more confident because they learn how to highlight their contribution without losing focus. This preparation also makes it easier to answer follow-up questions with confidence and clarity during the actual interview.",
+    text: "When describing a project, explain the problem first and then the approach you used. Mention the tools, your responsibilities, and the final result. A clear structure helps the interviewer understand your role and your thinking process. Practicing project answers makes you sound more confident and prepared.",
     complexWords: ["sequence", "responsibilities", "credible", "contribution", "preparation"],
   },
   {
     id: "para-3",
     title: "Handling Pressure",
-    text: "Interviewers often ask how a candidate handles pressure because workplaces regularly involve deadlines, changing priorities, and unexpected challenges. A thoughtful answer should show emotional control, practical planning, and the ability to stay productive during stressful situations. Instead of simply saying that you work well under pressure, explain how you organize tasks, communicate with teammates, and break large problems into smaller steps. This demonstrates maturity and responsibility. Candidates should also mention how they remain calm when plans change, because adaptability is an important quality in many roles. Speaking about pressure with a balanced tone shows confidence and realism. It tells the interviewer that you understand the demands of professional work and that you can respond to difficult situations with patience, discipline, and a solution-focused attitude.",
+    text: "Handling pressure means staying calm and organized when work becomes difficult. In interviews, candidates should explain how they manage tasks, communicate clearly, and focus on solutions. A balanced answer shows maturity and emotional control. Employers value people who can stay productive even during stressful situations.",
     complexWords: ["priorities", "productive", "maturity", "adaptability", "discipline"],
   },
   {
     id: "para-4",
     title: "Learning from Feedback",
-    text: "Constructive feedback is an important part of personal and professional growth. In an interview, candidates should show that they are open to suggestions and willing to improve rather than becoming defensive. A strong answer can include an example of receiving feedback from a teacher, mentor, or teammate, followed by the steps taken to improve performance. This demonstrates humility, self-awareness, and commitment to learning. Employers value people who can listen carefully, reflect honestly, and make meaningful changes. When students practice explaining such experiences aloud, they become better at describing growth in a natural and confident manner. This also helps them sound mature and collaborative. In the workplace, the ability to accept feedback and transform it into better results can lead to stronger teamwork and long-term success.",
+    text: "Constructive feedback helps people grow and improve over time. In an interview, it is good to share an example of feedback you received and how you acted on it. This shows self-awareness, humility, and a willingness to learn. Employers appreciate candidates who can turn feedback into better performance.",
     complexWords: ["constructive", "defensive", "humility", "collaborative", "transform"],
   },
   {
@@ -107,6 +107,15 @@ const getWordCount = (text = "") =>
     .trim()
     .split(/\s+/)
     .filter(Boolean).length;
+
+const calculateWordsPerMinute = (text = "", durationSeconds = 0) => {
+  const wordCount = getWordCount(text);
+  if (!wordCount || durationSeconds <= 0) {
+    return 0;
+  }
+
+  return Math.round(wordCount / (durationSeconds / 60));
+};
 
 const formatSeconds = (seconds = 0) => {
   const mins = Math.floor(seconds / 60)
@@ -189,7 +198,9 @@ export const VoicePractice = () => {
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const stopFallbackTimerRef = useRef(null);
   const shouldAnalyzeOnStopRef = useRef(false);
+  const stopRequestedRef = useRef(false);
   const finalTranscriptRef = useRef("");
   const confidenceSamplesRef = useRef([]);
 
@@ -205,8 +216,11 @@ export const VoicePractice = () => {
   const [speechConfidence, setSpeechConfidence] = useState(0);
   const [isSupported, setIsSupported] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
   const [isLoadingQuestion, setIsLoadingQuestion] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyMode, setHistoryMode] = useState(MODES.paragraph);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState(null);
 
@@ -222,6 +236,18 @@ export const VoicePractice = () => {
   const latestFeedback = feedback?.feedback || null;
   const latestMetrics = latestFeedback?.metrics || {};
   const latestGamification = latestFeedback?.gamification || {};
+  const historySessions = useMemo(
+    () => ({
+      [MODES.paragraph]: history.filter((session) => session.mode === MODES.paragraph),
+      [MODES.question]: history.filter((session) => session.mode === MODES.question),
+    }),
+    [history],
+  );
+  const selectedHistorySessions = historySessions[historyMode] || [];
+  const latestWordsPerMinute =
+    (latestMetrics.wordsPerMinute ?? 0) > 0
+      ? latestMetrics.wordsPerMinute
+      : calculateWordsPerMinute(transcript, durationSeconds);
 
   const confidencePercent = useMemo(
     () => Math.round(Math.max(0, Math.min(1, speechConfidence)) * 100),
@@ -257,7 +283,7 @@ export const VoicePractice = () => {
     setError("");
 
     try {
-      const data = await voiceService.getQuestion();
+      const data = await voiceService.getQuestion(question);
       setQuestion(data.question || "");
     } catch (questionError) {
       setError(
@@ -271,13 +297,20 @@ export const VoicePractice = () => {
   };
 
   const resetPracticeState = () => {
+    if (stopFallbackTimerRef.current) {
+      window.clearTimeout(stopFallbackTimerRef.current);
+      stopFallbackTimerRef.current = null;
+    }
+
     setTranscript("");
     setInterimTranscript("");
     setDurationSeconds(0);
     setSpeechConfidence(0);
     setFeedback(null);
     setError("");
+    setIsStopping(false);
     startTimeRef.current = null;
+    stopRequestedRef.current = false;
     finalTranscriptRef.current = "";
     confidenceSamplesRef.current = [];
   };
@@ -332,6 +365,8 @@ export const VoicePractice = () => {
 
     recognition.onstart = () => {
       setIsRecording(true);
+      setIsStopping(false);
+      stopRequestedRef.current = false;
       setError("");
     };
 
@@ -368,12 +403,27 @@ export const VoicePractice = () => {
     };
 
     recognition.onerror = (event) => {
+      setIsStopping(false);
       setError(getErrorMessage(event.error));
     };
 
     recognition.onend = async () => {
       setIsRecording(false);
+      setIsStopping(false);
       setInterimTranscript("");
+
+      if (stopFallbackTimerRef.current) {
+        window.clearTimeout(stopFallbackTimerRef.current);
+        stopFallbackTimerRef.current = null;
+      }
+
+      const finalDurationSeconds = startTimeRef.current
+        ? Math.max(
+            durationSeconds,
+            Math.floor((Date.now() - startTimeRef.current) / 1000),
+          )
+        : durationSeconds;
+      setDurationSeconds(finalDurationSeconds);
 
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
@@ -384,8 +434,6 @@ export const VoicePractice = () => {
       if (shouldAnalyzeOnStopRef.current) {
         shouldAnalyzeOnStopRef.current = false;
         const finalText = finalTranscriptRef.current.trim();
-        const finalDurationSeconds = getCurrentDurationSeconds();
-        setDurationSeconds(finalDurationSeconds);
 
         if (!finalText) {
           setError("Transcript is empty. Please record a response before analysis.");
@@ -405,7 +453,10 @@ export const VoicePractice = () => {
       if (timerRef.current) {
         window.clearInterval(timerRef.current);
       }
-      recognition.stop();
+      if (stopFallbackTimerRef.current) {
+        window.clearTimeout(stopFallbackTimerRef.current);
+      }
+      recognition.abort();
     };
   }, []);
 
@@ -425,6 +476,11 @@ export const VoicePractice = () => {
   };
 
   const startRecording = () => {
+    if (isStopping) {
+      setError("The current recording is still stopping. Please wait a moment.");
+      return;
+    }
+
     if (!recognitionRef.current || !isSupported) {
       setError("Speech recognition is not available in this browser.");
       return;
@@ -450,7 +506,35 @@ export const VoicePractice = () => {
     }
 
     shouldAnalyzeOnStopRef.current = true;
-    recognitionRef.current.stop();
+    stopRequestedRef.current = true;
+    setIsStopping(true);
+
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    try {
+      recognitionRef.current.stop();
+    } catch {
+      recognitionRef.current.abort();
+    }
+
+    stopFallbackTimerRef.current = window.setTimeout(() => {
+      if (!stopRequestedRef.current) {
+        return;
+      }
+
+      try {
+        recognitionRef.current?.abort();
+      } catch {
+        // Ignore abort issues from inconsistent browser implementations.
+      }
+
+      setIsRecording(false);
+      setIsStopping(false);
+      stopRequestedRef.current = false;
+    }, 1500);
   };
 
   return (
@@ -471,20 +555,91 @@ export const VoicePractice = () => {
 
           <section className="space-y-6">
             <div className="rounded-3xl border border-white/60 bg-white/55 p-6 shadow-xl backdrop-blur-md dark:border-slate-700/60 dark:bg-slate-900/60">
-                <div className="mb-5 flex flex-wrap gap-3">
-                  <PracticeModeButton
-                    active={mode === MODES.paragraph}
-                    icon={FileText}
-                    label="Paragraph Practice"
-                    onClick={() => changeMode(MODES.paragraph)}
-                  />
-                  <PracticeModeButton
-                    active={mode === MODES.question}
-                    icon={MessageSquare}
-                    label="AI Question Practice"
-                    onClick={() => changeMode(MODES.question)}
-                  />
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap gap-3">
+                    <PracticeModeButton
+                      active={mode === MODES.paragraph}
+                      icon={FileText}
+                      label="Paragraph Practice"
+                      onClick={() => changeMode(MODES.paragraph)}
+                    />
+                    <PracticeModeButton
+                      active={mode === MODES.question}
+                      icon={MessageSquare}
+                      label="AI Question Practice"
+                      onClick={() => changeMode(MODES.question)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryOpen((current) => !current)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-teal-200 bg-white/80 px-4 py-3 text-sm font-semibold text-teal-700 transition hover:border-teal-400 hover:bg-teal-50 dark:border-teal-900 dark:bg-slate-900/70 dark:text-teal-300"
+                  >
+                    <History size={18} />
+                    {isHistoryOpen ? "Hide History" : "View History"}
+                  </button>
                 </div>
+
+                {isHistoryOpen ? (
+                  <div className="mb-5 rounded-3xl border border-white/60 bg-white/75 p-5 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/40">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <PracticeModeButton
+                        active={historyMode === MODES.paragraph}
+                        icon={FileText}
+                        label="Paragraph Practice"
+                        onClick={() => setHistoryMode(MODES.paragraph)}
+                      />
+                      <PracticeModeButton
+                        active={historyMode === MODES.question}
+                        icon={MessageSquare}
+                        label="AI Practice"
+                        onClick={() => setHistoryMode(MODES.question)}
+                      />
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {selectedHistorySessions.length ? (
+                        selectedHistorySessions.map((session) => (
+                          <div
+                            key={session._id}
+                            className="rounded-2xl border border-slate-200 bg-white/90 p-4 dark:border-slate-700 dark:bg-slate-900/80"
+                          >
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                              <div className="space-y-2">
+                                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
+                                  {historyMode === MODES.paragraph
+                                    ? "Paragraph Practice"
+                                    : "AI Practice"}
+                                </p>
+                                <p className="line-clamp-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
+                                  {session.questionOrParagraph}
+                                </p>
+                              </div>
+                              <span className="inline-flex w-fit rounded-full bg-teal-100 px-4 py-2 text-sm font-semibold text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+                                {session.score}/10
+                              </span>
+                            </div>
+                            <div className="mt-3 grid gap-3 md:grid-cols-3">
+                              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
+                                Filler words: {session.fillerWordCount || 0}
+                              </div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
+                                Speech speed: {session.wordsPerMinute || 0} WPM
+                              </div>
+                              <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
+                                {new Date(session.createdAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                          No saved sessions yet for this practice type.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="rounded-3xl border border-teal-200/70 bg-gradient-to-br from-white/80 to-teal-50/80 p-5 dark:border-teal-900/60 dark:from-slate-950/80 dark:to-teal-950/40">
                   <div className="mb-3 flex items-center justify-between gap-3">
@@ -579,28 +734,7 @@ export const VoicePractice = () => {
                   )}
                 </div>
 
-                <div className="mt-6 grid gap-4 lg:grid-cols-3">
-                  <MetricCard
-                    icon={Clock3}
-                    label="Recording Timer"
-                    value={formatSeconds(durationSeconds)}
-                    helper="Tracks speaking duration"
-                  />
-                  <MetricCard
-                    icon={Gauge}
-                    label="Speech Confidence"
-                    value={`${confidencePercent}%`}
-                    helper={getConfidenceLabel(speechConfidence)}
-                  />
-                  <MetricCard
-                    icon={Volume2}
-                    label="Status"
-                    value={isRecording ? "Listening" : "Ready"}
-                    helper={isRecording ? "Speech recognition is active" : "Press start to begin"}
-                  />
-                </div>
-
-                <div className="mt-6 rounded-3xl border border-dashed border-teal-300/80 bg-teal-50/70 p-6 text-center dark:border-teal-800 dark:bg-teal-950/30">
+                <div className="mt-6 rounded-[2rem] border border-dashed border-teal-300/80 bg-gradient-to-br from-teal-50/90 via-white/80 to-emerald-50/70 p-6 text-center shadow-inner dark:border-teal-800 dark:from-teal-950/30 dark:via-slate-950/60 dark:to-emerald-950/20">
                   <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white text-teal-600 shadow-lg dark:bg-slate-900 dark:text-teal-300">
                     {isRecording ? (
                       <span className="relative flex">
@@ -624,7 +758,7 @@ export const VoicePractice = () => {
                     <button
                       type="button"
                       onClick={startRecording}
-                      disabled={!isSupported || isRecording || isAnalyzing}
+                      disabled={!isSupported || isRecording || isAnalyzing || isStopping}
                       className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Mic size={18} />
@@ -633,12 +767,41 @@ export const VoicePractice = () => {
                     <button
                       type="button"
                       onClick={stopRecording}
-                      disabled={!isRecording}
+                      disabled={!isRecording || isStopping}
                       className="inline-flex items-center gap-2 rounded-2xl border border-rose-300 bg-white px-5 py-3 font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-400"
                     >
                       <MicOff size={18} />
-                      Stop Recording
+                      {isStopping ? "Stopping..." : "Stop Recording"}
                     </button>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Gauge size={18} className="text-teal-600 dark:text-teal-300" />
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Live Practice Stats
+                    </h3>
+                  </div>
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <MetricCard
+                      icon={Clock3}
+                      label="Recording Timer"
+                      value={formatSeconds(durationSeconds)}
+                      helper="Tracks speaking duration"
+                    />
+                    <MetricCard
+                      icon={Gauge}
+                      label="Speech Confidence"
+                      value={`${confidencePercent}%`}
+                      helper={getConfidenceLabel(speechConfidence)}
+                    />
+                    <MetricCard
+                      icon={Volume2}
+                      label="Status"
+                      value={isRecording ? "Listening" : "Ready"}
+                      helper={isRecording ? "Speech recognition is active" : "Press start to begin"}
+                    />
                   </div>
                 </div>
             </div>
@@ -657,7 +820,6 @@ export const VoicePractice = () => {
                     Your speech-to-text transcript will appear here while you speak.
                   </span>
                 )}
-                {liveTranscript}
               </div>
 
               {(error || isAnalyzing) && (
@@ -729,7 +891,7 @@ export const VoicePractice = () => {
                     <MetricCard
                       icon={Clock3}
                       label="Speech Speed"
-                      value={`${latestMetrics.wordsPerMinute ?? 0} WPM`}
+                      value={`${latestWordsPerMinute} WPM`}
                       helper="Words per minute"
                     />
                     <MetricCard
@@ -840,57 +1002,6 @@ export const VoicePractice = () => {
                     {getConfidenceLabel(speechConfidence)} ({confidencePercent}%)
                   </span>
                 </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/60 bg-white/60 p-6 shadow-xl backdrop-blur-md dark:border-slate-700/60 dark:bg-slate-900/60">
-              <div className="mb-4 flex items-center gap-2">
-                <History size={18} className="text-teal-600 dark:text-teal-300" />
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Session History
-                </h2>
-              </div>
-
-              <div className="space-y-3">
-                {history.length ? (
-                  history.map((session) => (
-                    <div
-                      key={session._id}
-                      className="rounded-2xl border border-slate-200 bg-white/80 p-5 dark:border-slate-700 dark:bg-slate-950/60"
-                    >
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div className="space-y-2">
-                          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
-                            {session.mode === MODES.paragraph
-                              ? "Paragraph"
-                              : "AI Question"}
-                          </p>
-                          <p className="text-base leading-7 text-slate-700 dark:text-slate-300">
-                            {session.questionOrParagraph}
-                          </p>
-                        </div>
-                        <span className="inline-flex w-fit rounded-full bg-teal-100 px-4 py-2 text-sm font-semibold text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
-                          {session.score}/10
-                        </span>
-                      </div>
-                      <div className="mt-4 grid gap-3 md:grid-cols-3">
-                        <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
-                          Transcript: {session.transcript}
-                        </div>
-                        <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
-                          Filler words: {session.fillerWordCount || 0}
-                        </div>
-                        <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
-                          Speech speed: {session.wordsPerMinute || 0} WPM
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                    Your recent voice practice sessions will appear here.
-                  </div>
-                )}
               </div>
             </div>
           </section>

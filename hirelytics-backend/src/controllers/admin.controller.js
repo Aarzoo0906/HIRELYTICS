@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Interview from "../models/Interview.js";
 import { broadcastNotificationToAllUsers } from "../services/notification.service.js";
+import { formatDisplayName } from "../utils/nameFormat.js";
 
 export const getSystemStats = async (req, res) => {
   try {
@@ -35,7 +36,10 @@ export const getUsersUsage = async (req, res) => {
       .lean();
 
     res.json({
-      users,
+      users: users.map((user) => ({
+        ...user,
+        name: formatDisplayName(user.name),
+      })),
       total: users.length,
     });
   } catch (error) {

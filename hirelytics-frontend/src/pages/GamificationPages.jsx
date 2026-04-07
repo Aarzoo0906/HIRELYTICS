@@ -12,6 +12,7 @@ import {
   AchievementCard,
   LeaderboardRow,
 } from "../components/GamificationComponents";
+import { formatDisplayName } from "../utils/name";
 
 const API_BASE =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
@@ -73,7 +74,7 @@ export const Profile = () => {
     return (
       <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
         <Sidebar />
-        <main className="min-w-0 flex-1 p-8 flex items-center justify-center">
+        <main className="min-w-0 flex flex-1 items-center justify-center p-4 md:p-8">
           <p>Loading profile...</p>
         </main>
       </div>
@@ -89,7 +90,7 @@ export const Profile = () => {
 
           <PageHeader
             eyebrow="Gamification"
-            title={`${user?.name || "Your"} Profile`}
+            title={`${formatDisplayName(user?.name || "Your")} Profile`}
             description="View your achievements, points, streaks, and growth at a glance."
             icon={Trophy}
             backFallbackTo="/dashboard"

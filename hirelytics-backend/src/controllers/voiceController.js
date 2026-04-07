@@ -45,8 +45,10 @@ const unlockConfidentSpeakerBadge = async (userId) => {
 };
 
 export const getVoiceQuestion = async (req, res) => {
+  const currentQuestion = `${req.query.currentQuestion || ""}`;
+
   res.json({
-    question: getRandomVoiceQuestion(),
+    question: getRandomVoiceQuestion(currentQuestion),
     paragraph: PARAGRAPH_SAMPLES[Math.floor(Math.random() * PARAGRAPH_SAMPLES.length)],
   });
 };

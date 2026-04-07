@@ -19,8 +19,10 @@ voiceApi.interceptors.request.use((config) => {
 });
 
 export const voiceService = {
-  async getQuestion() {
-    const { data } = await voiceApi.get("/question");
+  async getQuestion(currentQuestion = "") {
+    const { data } = await voiceApi.get("/question", {
+      params: currentQuestion ? { currentQuestion } : undefined,
+    });
     return data;
   },
 

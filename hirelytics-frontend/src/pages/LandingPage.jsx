@@ -478,11 +478,11 @@ function Hero({ primaryLink }) {
             <div className="h-2.5 w-2.5 rounded-full bg-green-400/60"></div>
             <span className="ml-2 text-xs text-slate-500">hirelytics.app/dashboard</span>
           </div>
-          <div className="grid grid-cols-3 gap-3 p-4">
-            <div className="col-span-1 flex flex-col items-center justify-center gap-2 rounded-xl bg-slate-800/60 p-3">
+          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
+            <div className="flex flex-col items-center justify-center gap-2 rounded-xl bg-slate-800/60 p-3 sm:col-span-1">
               <ScoreMeter score={82} animate={inView} />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <div className="rounded-xl bg-slate-800/60 p-3">
                 <div className="mb-2 text-xs text-slate-400">Latest feedback</div>
                 <div className="space-y-1.5">
@@ -498,7 +498,7 @@ function Hero({ primaryLink }) {
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="rounded-xl bg-slate-800/60 p-3 text-center">
                   <div className="text-xl font-black text-white">14</div>
                   <div className="text-xs text-slate-400">Interviews done</div>

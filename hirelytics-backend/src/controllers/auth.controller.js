@@ -2,10 +2,11 @@ import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import { generateToken } from "../config/jwt.js";
 import { isAllowedAdminEmail } from "../config/adminUsers.js";
+import { formatDisplayName } from "../utils/nameFormat.js";
 
 const buildAuthUser = (user) => ({
   id: user._id,
-  name: user.name,
+  name: formatDisplayName(user.name),
   email: user.email,
   role: user.role,
   mustChangePassword: user.mustChangePassword,
@@ -28,7 +29,7 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      name,
+      name: formatDisplayName(name),
       email: normalizedEmail,
       password: hashedPassword,
       role: isAllowedAdminEmail(normalizedEmail) ? "admin" : "user",

@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import { formatDisplayName } from "../utils/nameFormat.js";
 
 // Constants
 const POINTS_CONFIG = {
@@ -363,7 +364,7 @@ export const getLeaderboard = async (req, res, next) => {
 
     const leaderboard = users.map((user, index) => ({
       rank: index + 1,
-      name: user.name,
+      name: formatDisplayName(user.name),
       email: user.email,
       points: user.totalPoints || user.points || 0,
       level: user.level || 1,

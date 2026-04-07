@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from "react";
+import { formatDisplayName } from "../utils/name";
 
 const AuthContext = createContext(null);
 const getTimeSpentKey = (email = "") =>
@@ -23,6 +24,14 @@ const persistTimeSpent = (email = "", seconds = 0) => {
 
 const getPreferredTimeSpent = (email = "", remoteSeconds = 0) =>
   Math.max(getStoredTimeSpent(email), remoteSeconds || 0);
+
+const normalizeUserName = (userData) =>
+  userData?.name
+    ? {
+        ...userData,
+        name: formatDisplayName(userData.name),
+      }
+    : userData;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -65,11 +74,11 @@ export const AuthProvider = ({ children }) => {
 
         const data = await response.json();
         const storedUser = getStoredUser();
-        const userData = {
+        const userData = normalizeUserName({
           ...data.user,
           joinDate: storedUser?.joinDate || new Date().toLocaleDateString(),
           interviews: storedUser?.interviews || [],
-        };
+        });
         const nextTimeSpent = getPreferredTimeSpent(
           userData.email,
           userData.totalTimeSpentSeconds,
@@ -188,12 +197,12 @@ export const AuthProvider = ({ children }) => {
     }
 
     const storedUser = getStoredUser();
-    const nextUser = {
+    const nextUser = normalizeUserName({
       ...data.user,
       joinDate: storedUser?.joinDate || new Date().toLocaleDateString(),
       loginStreak: storedUser?.loginStreak || 1,
       interviews: storedUser?.interviews || [],
-    };
+    });
     const nextTimeSpent = getPreferredTimeSpent(
       nextUser.email,
       nextUser.totalTimeSpentSeconds,
@@ -238,7 +247,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (updates) => {
-    const updated = { ...user, ...updates };
+    const updated = normalizeUserName({ ...user, ...updates });
     localStorage.setItem("user", JSON.stringify(updated));
     setUser(updated);
   };

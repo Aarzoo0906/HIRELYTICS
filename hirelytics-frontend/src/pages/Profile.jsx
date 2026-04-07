@@ -12,6 +12,7 @@ import {
   Camera,
 } from "lucide-react";
 import { getValidImageSrc } from "../utils/profileImage";
+import { formatDisplayName } from "../utils/name";
 
 export const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -124,7 +125,7 @@ export const Profile = () => {
 
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    {user?.name}
+                    {formatDisplayName(user?.name)}
                   </h2>
                   <p className="text-slate-600 dark:text-slate-400 mt-1">
                     {user?.email}
@@ -185,7 +186,7 @@ export const Profile = () => {
                   Full Name
                 </label>
                 <span className="text-slate-600 dark:text-slate-400">
-                  {user?.name}
+                  {formatDisplayName(user?.name)}
                 </span>
               </div>
               <div className="flex items-center justify-between py-3">

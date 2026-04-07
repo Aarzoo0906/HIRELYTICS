@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Clock3, User2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { formatDisplayName } from "../utils/name";
 
 const formatDate = (value) =>
   value.toLocaleDateString("en-IN", {
@@ -41,7 +42,7 @@ export const PageClock = () => {
               Welcome Back
             </p>
             <p className="truncate text-xl font-bold tracking-tight md:text-2xl">
-              {user?.name || "Guest"}
+              {formatDisplayName(user?.name || "Guest")}
             </p>
           </div>
         </div>

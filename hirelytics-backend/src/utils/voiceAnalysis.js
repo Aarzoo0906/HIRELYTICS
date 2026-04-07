@@ -11,6 +11,21 @@ const SAMPLE_QUESTIONS = [
   "Tell me about a project you are proud of.",
   "How do you respond to constructive feedback?",
   "Why should we hire you for this role?",
+  "What is one weakness you are currently working to improve?",
+  "Describe a time when you had to learn a new skill quickly.",
+  "How do you prioritize tasks when you have multiple deadlines?",
+  "Tell me about a time you worked successfully in a team.",
+  "Describe a situation where you showed leadership.",
+  "What motivates you to do your best work?",
+  "How do you handle disagreement with a teammate or manager?",
+  "Tell me about a failure and what you learned from it.",
+  "Describe a time you had to adapt to change.",
+  "What kind of work environment helps you perform best?",
+  "How do you make sure your communication is clear and professional?",
+  "Tell me about a time you took initiative without being asked.",
+  "What are your short-term and long-term career goals?",
+  "Describe a challenging academic or internship experience.",
+  "How would you explain one of your technical projects to a non-technical person?",
 ];
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -232,5 +247,15 @@ export const analyzeVoiceTranscript = async (payload) => {
   }
 };
 
-export const getRandomVoiceQuestion = () =>
-  SAMPLE_QUESTIONS[Math.floor(Math.random() * SAMPLE_QUESTIONS.length)];
+export const getRandomVoiceQuestion = (excludedQuestion = "") => {
+  const normalizedExcludedQuestion = excludedQuestion.trim().toLowerCase();
+  const availableQuestions = SAMPLE_QUESTIONS.filter(
+    (question) => question.trim().toLowerCase() !== normalizedExcludedQuestion,
+  );
+
+  const questionPool = availableQuestions.length
+    ? availableQuestions
+    : SAMPLE_QUESTIONS;
+
+  return questionPool[Math.floor(Math.random() * questionPool.length)];
+};

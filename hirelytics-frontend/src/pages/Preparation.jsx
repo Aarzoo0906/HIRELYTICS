@@ -119,6 +119,7 @@ export const Preparation = () => {
   const [selectedNote, setSelectedNote] = useState(null);
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
+  const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [selectedNotePreviewUrl, setSelectedNotePreviewUrl] = useState("");
 
@@ -389,11 +390,6 @@ export const Preparation = () => {
   };
 
   const handleDelete = async (noteId) => {
-    const confirmed = window.confirm("Delete this PDF note?");
-    if (!confirmed) {
-      return;
-    }
-
     setError("");
     setSuccess("");
 
@@ -422,10 +418,22 @@ export const Preparation = () => {
       if (selectedNote?._id === noteId) {
         setIsPdfViewerOpen(false);
       }
+      setPendingDeleteNoteId(null);
       await fetchNotes();
     } catch (deleteError) {
       setError(deleteError.message || "Failed to delete PDF note");
     }
+  };
+
+  const requestDelete = (noteId) => {
+    setPendingDeleteNoteId(noteId);
+    setError("");
+    setSuccess("Please confirm if you want to delete this PDF note.");
+  };
+
+  const cancelDelete = () => {
+    setPendingDeleteNoteId(null);
+    setSuccess("PDF note deletion cancelled.");
   };
 
   const handleCompleteNote = async () => {
@@ -487,7 +495,7 @@ export const Preparation = () => {
             backFallbackTo="/dashboard"
           />
 
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {groupedCategoryCounts.map((item) => {
               const categoryMeta = PREPARATION_CATEGORY_MAP[item.category];
               const Icon = categoryMeta?.cardIcon || BookOpen;
@@ -593,7 +601,7 @@ export const Preparation = () => {
                                   : `${theme[0]}28`,
                             }}
                           >
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                               <button
                                 type="button"
                                 onClick={() => setSelectedNote(note)}
@@ -644,7 +652,7 @@ export const Preparation = () => {
                                 )}
                               </button>
                               {isAdmin && (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 self-end sm:self-auto">
                                   <button
                                     type="button"
                                     onClick={() => handleEdit(note)}
@@ -654,7 +662,7 @@ export const Preparation = () => {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => handleDelete(note._id)}
+                                    onClick={() => requestDelete(note._id)}
                                     className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300"
                                   >
                                     <Trash2 size={14} />
@@ -709,6 +717,33 @@ export const Preparation = () => {
                   {success}
                 </div>
               )}
+
+              {pendingDeleteNoteId ? (
+                <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-4">
+                  <p className="font-semibold text-red-700 dark:text-red-300">
+                    Delete this PDF note permanently?
+                  </p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    This will remove the note from the preparation hub for everyone.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(pendingDeleteNoteId)}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                    >
+                      Yes, delete note
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelDelete}
+                      className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {isAdmin && (
                 <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6">

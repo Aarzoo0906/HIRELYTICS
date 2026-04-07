@@ -1,10 +1,13 @@
 import mongoose from "mongoose";
+import { formatDisplayName } from "../utils/nameFormat.js";
 
 const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
+      trim: true,
+      set: (value) => formatDisplayName(value),
     },
 
     email: {

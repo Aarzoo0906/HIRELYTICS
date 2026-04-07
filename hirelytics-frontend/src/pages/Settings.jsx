@@ -8,6 +8,7 @@ import { useAuth } from "../context/AuthContext";
 import { getValidImageSrc } from "../utils/profileImage";
 import { formatDuration } from "../utils/time";
 import { useNavigate } from "react-router-dom";
+import { formatDisplayName } from "../utils/name";
 import {
   Camera,
   Trash2,
@@ -69,6 +70,7 @@ export const Settings = () => {
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("account");
   const [error, setError] = useState("");
+  const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -232,12 +234,21 @@ export const Settings = () => {
 
   // Delete account
   const handleDeleteAccount = () => {
-    if (window.confirm("Are you sure? This action cannot be undone.")) {
-      localStorage.removeItem("settings");
-      localStorage.removeItem("profilePhoto");
-      logout();
-      navigate("/login");
-    }
+    setError("");
+    setMessage("");
+    setIsDeleteAccountConfirmOpen(true);
+  };
+
+  const confirmDeleteAccount = () => {
+    localStorage.removeItem("settings");
+    localStorage.removeItem("profilePhoto");
+    logout();
+    navigate("/login");
+  };
+
+  const cancelDeleteAccount = () => {
+    setIsDeleteAccountConfirmOpen(false);
+    setMessage("Account deletion cancelled.");
   };
 
   const handleCancel = () => {
@@ -456,7 +467,7 @@ export const Settings = () => {
                     Profile Picture
                   </h2>
 
-                  <div className="flex items-start gap-6">
+                  <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
                     {/* Image Preview */}
                     <div className="relative">
                       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center overflow-hidden">
@@ -487,7 +498,7 @@ export const Settings = () => {
                     </div>
 
                     {/* Upload Info */}
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -498,7 +509,7 @@ export const Settings = () => {
                       <p className="text-slate-600 dark:text-slate-400 mb-3">
                         JPG, PNG or GIF (max. 2MB)
                       </p>
-                      <div className="flex gap-3">
+                      <div className="flex flex-wrap gap-3">
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
@@ -957,6 +968,33 @@ export const Settings = () => {
                     Danger Zone
                   </h2>
 
+                  {isDeleteAccountConfirmOpen ? (
+                    <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
+                      <p className="font-semibold text-red-700 dark:text-red-300">
+                        Delete account permanently?
+                      </p>
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        This action cannot be undone. Your local account settings and session will be removed.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={confirmDeleteAccount}
+                          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                        >
+                          Yes, delete account
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelDeleteAccount}
+                          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <button
                     type="button"
                     onClick={handleDeleteAccount}
@@ -1105,7 +1143,7 @@ export const Settings = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-lg font-semibold text-slate-900 dark:text-slate-100">
-                              {adminUser.name}
+                              {formatDisplayName(adminUser.name)}
                             </p>
                             <p className="truncate text-sm text-slate-600 dark:text-slate-400">
                               {adminUser.email}

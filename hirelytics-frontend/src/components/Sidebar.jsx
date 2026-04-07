@@ -55,6 +55,16 @@ export const Sidebar = () => {
     };
   }, [isDesktopExpanded]);
 
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      document.body.style.overflow = isOpen ? "hidden" : "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   const handleLogout = () => {
     logout();
     navigate("/login");
