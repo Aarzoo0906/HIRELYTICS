@@ -6,7 +6,7 @@ const getRenderApiFallback = () => {
   const hostname = window.location.hostname.toLowerCase();
 
   if (hostname === "hirelytics-frontend-01.onrender.com") {
-    return "https://hirelytics-backend.onrender.com/api";
+    return "https://hirelytics-backend-1.onrender.com/api";
   }
 
   return "";
