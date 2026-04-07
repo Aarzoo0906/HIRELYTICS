@@ -31,7 +31,7 @@ export const PageClock = () => {
   }, []);
 
   return (
-    <section className="sticky top-0 z-20 w-full overflow-hidden rounded-t-2xl border-b border-white/10 bg-gradient-to-r from-slate-950 via-teal-950 to-emerald-950 px-4 py-3 text-white shadow-lg shadow-slate-900/10 md:px-6 lg:px-8">
+    <section className="sticky top-0 z-20 w-full overflow-hidden rounded-t-2xl border-b border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.2),transparent_20%),linear-gradient(90deg,#020617_0%,#082f49_45%,#1d4ed8_100%)] px-4 py-3 text-white shadow-lg shadow-slate-900/10 md:px-6 lg:px-8">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-white/15 backdrop-blur-sm">
@@ -52,7 +52,7 @@ export const PageClock = () => {
             <CalendarDays size={15} />
             {formatDate(now)}
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-teal-300/40 bg-teal-400/12 px-3 py-1.5 font-semibold text-teal-100 backdrop-blur-sm">
+          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/40 bg-cyan-400/12 px-3 py-1.5 font-semibold text-cyan-100 backdrop-blur-sm">
             <Clock3 size={15} />
             {formatTime(now)}
           </span>

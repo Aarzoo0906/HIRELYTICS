@@ -40,12 +40,12 @@ export const Register = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-100 dark:bg-slate-900">
+    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.14),_transparent_18%),linear-gradient(180deg,#edfaff_0%,#f7fbff_42%,#ffffff_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.14),_transparent_18%),linear-gradient(180deg,#020617_0%,#082f49_44%,#020617_100%)]">
       <div className="sticky top-0 z-40">
         <PageControls backFallbackTo="/" />
       </div>
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col justify-center p-4">
-        <div className="mx-auto w-full max-w-md bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-8">
+        <div className="mx-auto w-full max-w-md rounded-[1.8rem] border border-cyan-100 bg-[linear-gradient(145deg,#ffffff_0%,#f2fbff_100%)] p-8 shadow-[0_24px_70px_-48px_rgba(14,165,233,0.24)] dark:border-cyan-400/15 dark:bg-[linear-gradient(145deg,rgba(2,6,23,0.97)_0%,rgba(8,47,73,0.94)_100%)]">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
             Create Account
@@ -71,7 +71,7 @@ export const Register = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="John Doe"
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
+              className="w-full rounded-xl border border-cyan-200 bg-white px-4 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-cyan-400/15 dark:bg-slate-950/70 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-cyan-400"
             />
           </div>
 
@@ -84,7 +84,7 @@ export const Register = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
+              className="w-full rounded-xl border border-cyan-200 bg-white px-4 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-cyan-400/15 dark:bg-slate-950/70 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-cyan-400"
             />
           </div>
 
@@ -97,13 +97,13 @@ export const Register = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400"
+              className="w-full rounded-xl border border-cyan-200 bg-white px-4 py-2 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-cyan-400/15 dark:bg-slate-950/70 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:ring-cyan-400"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white font-semibold py-2 rounded-lg transition-colors mt-6"
+            className="mt-6 w-full rounded-xl bg-[linear-gradient(135deg,#06b6d4_0%,#0ea5e9_48%,#2563eb_100%)] py-2.5 font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-cyan-500/20"
           >
             Create Account
           </button>
@@ -113,7 +113,7 @@ export const Register = () => {
           Already have an account?{" "}
           <Link
             to="/login"
-            className="text-teal-600 dark:text-teal-400 hover:underline font-semibold"
+            className="font-semibold text-cyan-600 hover:underline dark:text-cyan-300"
           >
             Sign In
           </Link>

@@ -7,9 +7,14 @@ dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = "models/gemini-2.5-flash-lite"; // Using Lite version for better performance
+const ENABLE_GEMINI_API = process.env.ENABLE_GEMINI_API !== "false"; // Can disable via env var
 
 if (!GEMINI_API_KEY) {
   console.warn("⚠️  WARNING: GEMINI_API_KEY is not set. Using fallback questions for interviews.");
+}
+
+if (!ENABLE_GEMINI_API) {
+  console.log("📝 GEMINI API DISABLED - Using local fallback questions instead (quota-safe mode)");
 }
 
 const parseGeminiResponse = async (response) => {
@@ -40,13 +45,64 @@ const parseGeminiResponse = async (response) => {
   return data;
 };
 
+export const getAIServiceStatus = (error) => {
+  const message = `${error?.message || error || ""}`.toLowerCase();
+
+  if (!ENABLE_GEMINI_API) {
+    return {
+      available: false,
+      reason: "Gemini API is disabled. Using local fallback output.",
+    };
+  }
+
+  if (!GEMINI_API_KEY) {
+    return {
+      available: false,
+      reason: "Gemini API key is missing. Using local fallback output.",
+    };
+  }
+
+  if (
+    message.includes("quota") ||
+    message.includes("429") ||
+    message.includes("rate limit")
+  ) {
+    return {
+      available: false,
+      reason: "Gemini quota is exhausted. Using local fallback output.",
+    };
+  }
+
+  if (
+    message.includes("fetch failed") ||
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("timed out")
+  ) {
+    return {
+      available: false,
+      reason: "Gemini is temporarily unreachable. Using local fallback output.",
+    };
+  }
+
+  return {
+    available: true,
+    reason: "Gemini API available.",
+  };
+};
+
 export const callGeminiAPI = async (
   messages,
   maxTokens = 1000,
   temperature = 0.7,
 ) => {
-  if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY not configured. Fallback questions will be used.");
+  // Check if API is disabled or not configured
+  if (!ENABLE_GEMINI_API || !GEMINI_API_KEY) {
+    throw new Error(
+      ENABLE_GEMINI_API 
+        ? "GEMINI_API_KEY not configured. Using fallback questions."
+        : "Gemini API is disabled. Using fallback mode (safe for development/quota limits)."
+    );
   }
 
   try {

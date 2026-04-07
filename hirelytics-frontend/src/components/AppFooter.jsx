@@ -23,7 +23,7 @@ const footerSections = [
 export const AppFooter = ({ compact = false }) => {
   return (
     <footer
-      className="relative mt-auto w-full overflow-hidden border-t border-slate-200 bg-gradient-to-r from-slate-950 via-teal-950 to-emerald-950 px-4 py-6 text-white shadow-lg shadow-slate-900/10 md:px-6 lg:px-8"
+      className="relative mt-auto w-full overflow-hidden border-t border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_22%),linear-gradient(90deg,#020617_0%,#082f49_42%,#1d4ed8_100%)] px-4 py-6 text-white shadow-lg shadow-slate-900/10 md:px-6 lg:px-8"
     >
       <div className={`relative flex w-full flex-col gap-6 ${compact ? "lg:flex-row lg:items-center lg:justify-between" : "lg:grid lg:grid-cols-[1.2fr_1fr_1fr]"}`}>
         <div>

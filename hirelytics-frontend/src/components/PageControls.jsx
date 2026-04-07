@@ -6,7 +6,9 @@ export const PageControls = ({
   className = "",
 }) => {
   return (
-    <div className={`flex items-center justify-between gap-3 ${className}`.trim()}>
+    <div
+      className={`flex items-center justify-between gap-3 text-slate-900 dark:text-white ${className}`.trim()}
+    >
       <BackButton fallbackTo={backFallbackTo} label="Back" iconOnly />
       <ThemeToggle iconOnly />
     </div>

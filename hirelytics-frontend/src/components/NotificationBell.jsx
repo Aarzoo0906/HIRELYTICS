@@ -90,7 +90,7 @@ export const NotificationBell = () => {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/60 bg-gradient-to-br from-white to-slate-100 text-slate-700 shadow-lg shadow-slate-300/40 transition hover:-translate-y-0.5 hover:shadow-xl dark:border-slate-700 dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900 dark:text-slate-200 dark:shadow-slate-950/40"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-100 bg-[linear-gradient(135deg,#ffffff_0%,#eff8ff_100%)] text-sky-900 shadow-lg shadow-sky-300/30 transition hover:-translate-y-0.5 hover:shadow-xl dark:border-cyan-400/20 dark:bg-[linear-gradient(135deg,#082f49_0%,#1d4ed8_100%)] dark:text-cyan-100 dark:shadow-slate-950/40"
       >
         <Bell size={19} />
         {unreadCount > 0 && (
@@ -101,10 +101,10 @@ export const NotificationBell = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-14 z-50 w-[min(92vw,380px)] overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 shadow-2xl backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/95">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 dark:border-slate-700">
+        <div className="absolute right-0 top-14 z-50 w-[min(92vw,380px)] overflow-hidden rounded-3xl border border-cyan-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,249,255,0.95)_100%)] shadow-2xl backdrop-blur-md dark:border-cyan-400/20 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.98)_0%,rgba(8,47,73,0.96)_100%)]">
+          <div className="flex items-center justify-between border-b border-cyan-100 px-4 py-4 dark:border-cyan-400/15">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-teal-600 dark:text-teal-300" />
+              <Sparkles size={16} className="text-cyan-600 dark:text-cyan-300" />
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Notifications
               </h3>

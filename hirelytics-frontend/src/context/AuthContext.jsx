@@ -4,6 +4,10 @@ import { formatDisplayName } from "../utils/name";
 const AuthContext = createContext(null);
 const getTimeSpentKey = (email = "") =>
   `hirelytics-time-spent:${email.trim().toLowerCase()}`;
+const getLastLoginKey = (email = "") =>
+  `hirelytics-last-login:${email.trim().toLowerCase()}`;
+const getLoginStreakKey = (email = "") =>
+  `hirelytics-login-streak:${email.trim().toLowerCase()}`;
 
 const getStoredTimeSpent = (email = "") => {
   if (!email) {
@@ -20,6 +24,39 @@ const persistTimeSpent = (email = "", seconds = 0) => {
   }
 
   localStorage.setItem(getTimeSpentKey(email), `${Math.max(0, seconds)}`);
+};
+
+const getStoredLoginStreak = (email = "") => {
+  if (!email) {
+    return 0;
+  }
+
+  const storedValue = Number(localStorage.getItem(getLoginStreakKey(email)) || "0");
+  return Number.isFinite(storedValue) ? storedValue : 0;
+};
+
+const persistLoginStreak = (email = "", streak = 0) => {
+  if (!email) {
+    return;
+  }
+
+  localStorage.setItem(getLoginStreakKey(email), `${Math.max(0, streak)}`);
+};
+
+const getStoredLastLogin = (email = "") => {
+  if (!email) {
+    return "";
+  }
+
+  return localStorage.getItem(getLastLoginKey(email)) || "";
+};
+
+const persistLastLogin = (email = "", value = "") => {
+  if (!email) {
+    return;
+  }
+
+  localStorage.setItem(getLastLoginKey(email), value);
 };
 
 const getPreferredTimeSpent = (email = "", remoteSeconds = 0) =>
@@ -54,7 +91,6 @@ export const AuthProvider = ({ children }) => {
     const initializeAuth = async () => {
       if (!token) {
         localStorage.removeItem("user");
-        localStorage.removeItem("lastLogin");
         setUser(null);
         setTotalTimeSpentSeconds(0);
         setLoading(false);
@@ -77,6 +113,12 @@ export const AuthProvider = ({ children }) => {
         const userData = normalizeUserName({
           ...data.user,
           joinDate: storedUser?.joinDate || new Date().toLocaleDateString(),
+          loginStreak:
+            Math.max(
+              getStoredLoginStreak(data.user?.email),
+              storedUser?.loginStreak || 0,
+              data.user?.loginStreak || 0,
+            ) || 0,
           interviews: storedUser?.interviews || [],
         });
         const nextTimeSpent = getPreferredTimeSpent(
@@ -92,7 +134,6 @@ export const AuthProvider = ({ children }) => {
       } catch {
         localStorage.removeItem("user");
         localStorage.removeItem("token");
-        localStorage.removeItem("lastLogin");
         setUser(null);
         setTotalTimeSpentSeconds(0);
       } finally {
@@ -167,21 +208,30 @@ export const AuthProvider = ({ children }) => {
   }, [API_BASE, totalTimeSpentSeconds, user?.email]);
 
   const updateLoginStreak = (userData) => {
+    if (!userData?.email) {
+      return;
+    }
+
     const today = new Date().toDateString();
-    const lastLogin = localStorage.getItem("lastLogin");
+    const lastLogin = getStoredLastLogin(userData.email);
+    const storedStreak = getStoredLoginStreak(userData.email);
 
     if (lastLogin !== today) {
       const yesterday = new Date(Date.now() - 86400000).toDateString();
 
       if (lastLogin === yesterday) {
-        userData.loginStreak = (userData.loginStreak || 1) + 1;
+        userData.loginStreak = Math.max(storedStreak, userData.loginStreak || 0) + 1;
       } else {
         userData.loginStreak = 1;
       }
 
-      localStorage.setItem("lastLogin", today);
+      persistLastLogin(userData.email, today);
+      persistLoginStreak(userData.email, userData.loginStreak);
       localStorage.setItem("user", JSON.stringify(userData));
+      return;
     }
+
+    userData.loginStreak = Math.max(storedStreak, userData.loginStreak || 0);
   };
 
   const login = async (email, password) => {
@@ -200,20 +250,19 @@ export const AuthProvider = ({ children }) => {
     const nextUser = normalizeUserName({
       ...data.user,
       joinDate: storedUser?.joinDate || new Date().toLocaleDateString(),
-      loginStreak: storedUser?.loginStreak || 1,
+      loginStreak: getStoredLoginStreak(email) || storedUser?.loginStreak || 0,
       interviews: storedUser?.interviews || [],
     });
     const nextTimeSpent = getPreferredTimeSpent(
       nextUser.email,
       nextUser.totalTimeSpentSeconds,
     );
+    updateLoginStreak(nextUser);
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(nextUser));
-    localStorage.setItem("lastLogin", new Date().toDateString());
-    localStorage.setItem("darkMode", "false");
-    document.documentElement.classList.remove("dark");
     setUser(nextUser);
     persistTimeSpent(nextUser.email, nextTimeSpent);
+    persistLoginStreak(nextUser.email, nextUser.loginStreak || 0);
     setTotalTimeSpentSeconds(nextTimeSpent);
     return nextUser;
   };
@@ -239,9 +288,6 @@ export const AuthProvider = ({ children }) => {
     }
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    localStorage.removeItem("lastLogin");
-    localStorage.setItem("darkMode", "true");
-    document.documentElement.classList.add("dark");
     setUser(null);
     setTotalTimeSpentSeconds(0);
   };

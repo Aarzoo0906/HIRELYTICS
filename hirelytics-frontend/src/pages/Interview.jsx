@@ -260,7 +260,6 @@ export const Interview = () => {
   const isTimeUp = false;
   const showTimeWarning = false;
   const timePerQuestion = 0;
-  const totalTime = 0;
   const formatTime = (seconds) => `${seconds.toString().padStart(2, "0")}s`;
 
   return (
@@ -340,7 +339,7 @@ export const Interview = () => {
           )}
 
           <div
-            className={`flex items-center justify-center p-4 rounded-lg border-2 transition-colors ${
+            className={`hidden items-center justify-center p-4 rounded-lg border-2 transition-colors ${
               isTimeUp
                 ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700"
                 : timePerQuestion <= 10

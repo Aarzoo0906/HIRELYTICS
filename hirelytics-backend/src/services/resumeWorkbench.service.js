@@ -1,6 +1,6 @@
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
-import { callGeminiAPI } from "./ai.service.js";
+import { callGeminiAPI, getAIServiceStatus } from "./ai.service.js";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const SUPPORTED_MIME_TYPES = new Set([
@@ -257,6 +257,66 @@ const buildResumeFallback = (payload = {}) => {
       "Review experience and projects to add more metrics and outcomes.",
       "Refine the summary for the exact target role before applying.",
     ],
+    generationMode: "fallback",
+  };
+};
+
+const buildFallbackImprovedResume = (resumeText, options = {}) => {
+  const {
+    targetRole = "",
+    jobDescription = "",
+    focusAreas = [],
+    extraInstructions = "",
+  } = options;
+
+  const heuristic = computeHeuristicAnalysis(resumeText, jobDescription, targetRole);
+  const sections = detectSections(resumeText);
+  const keywordStrategy = dedupe([
+    ...heuristic.missingKeywords.slice(0, 6),
+    ...getTopKeywords(`${jobDescription} ${targetRole} ${focusAreas.join(" ")}`, 8),
+  ]).slice(0, 8);
+
+  const summaryLine = [
+    targetRole ? `${targetRole} aligned resume` : "Targeted resume draft",
+    "optimized with fallback ATS guidance",
+    keywordStrategy.length ? `and focus on ${keywordStrategy.slice(0, 4).join(", ")}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const insertedBlocks = [];
+
+  if (!sections.summary) {
+    insertedBlocks.push(`SUMMARY\n${summaryLine}.`);
+  }
+
+  if (!sections.skills && keywordStrategy.length) {
+    insertedBlocks.push(`CORE SKILLS\n${keywordStrategy.join(", ")}`);
+  }
+
+  const improvedResume = [...insertedBlocks, resumeText].filter(Boolean).join("\n\n").trim();
+
+  return {
+    improvedResume,
+    summary:
+      "Generated a fallback resume rewrite using pre-defined ATS rules and your existing resume content.",
+    changesMade: dedupe([
+      !sections.summary ? "Added a targeted summary section to strengthen the opening." : "",
+      !sections.skills && keywordStrategy.length
+        ? "Added a core skills section based on role and job-description keywords."
+        : "",
+      heuristic.missingKeywords.length
+        ? "Highlighted missing ATS keywords that should be woven into experience bullets."
+        : "Kept the resume content intact and returned a safe fallback version.",
+    ]).slice(0, 4),
+    nextSteps: dedupe([
+      ...heuristic.improvements,
+      extraInstructions ? `Review the draft against this instruction: ${extraInstructions}` : "",
+      "Add metrics and outcomes to the strongest experience bullets before final use.",
+    ]).slice(0, 5),
+    keywordStrategy,
     generationMode: "fallback",
   };
 };
@@ -571,9 +631,10 @@ export const analyzeResumePayload = async ({
   let aiInsights;
   try {
     aiInsights = await getAIInsights(extractedText, jobDescription, targetRole, heuristic);
-  } catch {
+  } catch (error) {
+    const aiStatus = getAIServiceStatus(error);
     aiInsights = {
-      summary: "AI review was unavailable, so this result is based on ATS heuristics only.",
+      summary: aiStatus.reason,
       aiOverallScore: heuristic.atsScore,
       recruiterView: "The resume needs stronger role alignment, clearer impact, and cleaner formatting.",
       topStrengths: heuristic.strengths,
@@ -639,21 +700,46 @@ export const improveResumePayload = async ({
   if (!extractedText || extractedText.length < 120) {
     throw new Error("Resume text is too short to improve.");
   }
-  const aiResult = await getImprovedResumeFromAI(
-    extractedText,
-    {
+  let aiResult;
+  try {
+    aiResult = await getImprovedResumeFromAI(
+      extractedText,
+      {
+        targetRole,
+        jobDescription,
+        focusAreas,
+        tone,
+        templateStyle,
+        priority,
+        outputLength,
+        targetCompanies,
+        mustKeep,
+        extraInstructions,
+      },
+    );
+  } catch (error) {
+    const fallbackResult = buildFallbackImprovedResume(extractedText, {
       targetRole,
       jobDescription,
       focusAreas,
-      tone,
-      templateStyle,
-      priority,
-      outputLength,
-      targetCompanies,
-      mustKeep,
       extraInstructions,
-    },
-  );
+    });
+    const improvedAnalysis = await analyzeResumePayload({
+      fileName: "Improved Resume",
+      resumeText: fallbackResult.improvedResume,
+      targetRole,
+      jobDescription,
+    });
+    return {
+      improvedResume: fallbackResult.improvedResume,
+      summary: `${fallbackResult.summary} ${getAIServiceStatus(error).reason}`.trim(),
+      changesMade: fallbackResult.changesMade || [],
+      nextSteps: fallbackResult.nextSteps || [],
+      keywordStrategy: fallbackResult.keywordStrategy || [],
+      generationMode: fallbackResult.generationMode,
+      improvedAnalysis,
+    };
+  }
   const improvedAnalysis = await analyzeResumePayload({
     fileName: "Improved Resume",
     resumeText: aiResult.improvedResume,
@@ -666,6 +752,7 @@ export const improveResumePayload = async ({
     changesMade: aiResult.changesMade || [],
     nextSteps: aiResult.nextSteps || [],
     keywordStrategy: aiResult.keywordStrategy || [],
+    generationMode: "ai",
     improvedAnalysis,
   };
 };

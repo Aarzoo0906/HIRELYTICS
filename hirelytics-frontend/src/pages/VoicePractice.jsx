@@ -696,7 +696,7 @@ export const VoicePractice = () => {
                           </select>
                         </div>
 
-                        <p className="rounded-2xl border border-teal-200/80 bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-5 text-lg font-semibold leading-9 text-white shadow-lg shadow-teal-500/20 dark:border-teal-800 dark:shadow-none md:px-6 md:py-6 md:text-2xl md:leading-10">
+                        <p className="rounded-2xl border border-cyan-200 bg-[linear-gradient(135deg,#f7fdff_0%,#eef9ff_55%,#e0f2fe_100%)] px-5 py-5 text-lg font-semibold leading-9 text-slate-900 shadow-lg shadow-cyan-200/60 dark:border-teal-800 dark:bg-gradient-to-r dark:from-teal-600 dark:to-emerald-500 dark:text-white dark:shadow-none md:px-6 md:py-6 md:text-2xl md:leading-10">
                           {selectedParagraph.text}
                         </p>
                       </div>
@@ -726,7 +726,7 @@ export const VoicePractice = () => {
                       </div>
                     </div>
                   ) : (
-                    <p className="rounded-2xl border border-teal-200/80 bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-5 text-lg font-semibold leading-9 text-white shadow-lg shadow-teal-500/20 dark:border-teal-800 dark:shadow-none md:px-6 md:py-6 md:text-2xl md:leading-10">
+                    <p className="rounded-2xl border border-cyan-200 bg-[linear-gradient(135deg,#f7fdff_0%,#eef9ff_55%,#e0f2fe_100%)] px-5 py-5 text-lg font-semibold leading-9 text-slate-900 shadow-lg shadow-cyan-200/60 dark:border-teal-800 dark:bg-gradient-to-r dark:from-teal-600 dark:to-emerald-500 dark:text-white dark:shadow-none md:px-6 md:py-6 md:text-2xl md:leading-10">
                       {isLoadingQuestion
                         ? "Loading a fresh interview question..."
                         : activePrompt}
@@ -734,8 +734,8 @@ export const VoicePractice = () => {
                   )}
                 </div>
 
-                <div className="mt-6 rounded-[2rem] border border-dashed border-teal-300/80 bg-gradient-to-br from-teal-50/90 via-white/80 to-emerald-50/70 p-6 text-center shadow-inner dark:border-teal-800 dark:from-teal-950/30 dark:via-slate-950/60 dark:to-emerald-950/20">
-                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white text-teal-600 shadow-lg dark:bg-slate-900 dark:text-teal-300">
+                <div className="mt-6 rounded-[2rem] border border-dashed border-cyan-300 bg-[linear-gradient(135deg,#f8fdff_0%,#f3fbff_52%,#e7f8ff_100%)] p-6 text-center shadow-inner shadow-cyan-100/70 dark:border-teal-800 dark:bg-gradient-to-br dark:from-teal-950/30 dark:via-slate-950/60 dark:to-emerald-950/20 dark:shadow-none">
+                  <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-white text-cyan-700 shadow-lg shadow-cyan-200/70 dark:bg-slate-900 dark:text-teal-300 dark:shadow-none">
                     {isRecording ? (
                       <span className="relative flex">
                         <span className="absolute inline-flex h-12 w-12 animate-ping rounded-full bg-rose-400 opacity-50" />
@@ -759,7 +759,7 @@ export const VoicePractice = () => {
                       type="button"
                       onClick={startRecording}
                       disabled={!isSupported || isRecording || isAnalyzing || isStopping}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-500 px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0891b2_0%,#0ea5e9_52%,#2563eb_100%)] px-5 py-3 font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-cyan-400/30 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-slate-800 dark:disabled:text-slate-400"
                     >
                       <Mic size={18} />
                       Start Recording
@@ -768,7 +768,7 @@ export const VoicePractice = () => {
                       type="button"
                       onClick={stopRecording}
                       disabled={!isRecording || isStopping}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-rose-300 bg-white px-5 py-3 font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-400"
+                      className="inline-flex items-center gap-2 rounded-2xl border border-rose-300 bg-white px-5 py-3 font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-400 dark:disabled:border-slate-800 dark:disabled:bg-slate-900 dark:disabled:text-slate-500"
                     >
                       <MicOff size={18} />
                       {isStopping ? "Stopping..." : "Stop Recording"}

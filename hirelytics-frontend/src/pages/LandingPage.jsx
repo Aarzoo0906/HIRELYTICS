@@ -1194,7 +1194,7 @@ export const LandingPage = () => {
   const secondaryLink = isAuthenticated ? "/interview-selection" : "/login";
 
   return (
-    <div className="landing-shell flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900 dark:bg-slate-950 dark:text-white">
+    <div className="landing-shell flex min-h-screen flex-col bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_18%),linear-gradient(180deg,#e8f8ff_0%,#eef8ff_42%,#dff3ff_100%)] font-sans text-slate-900 dark:bg-slate-950 dark:text-white">
       <LandingNavbar isAuthenticated={isAuthenticated} />
       <div className="sticky top-16 z-40">
         <PageControls backFallbackTo={isAuthenticated ? "/dashboard" : "/"} />
@@ -1218,7 +1218,7 @@ export const LandingPage = () => {
         <div className="fixed right-4 bottom-4 left-4 z-50 sm:hidden">
           <Link
             to="/register"
-            className="block w-full rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 py-3.5 text-center text-sm font-semibold text-white shadow-xl shadow-teal-500/30 transition-opacity hover:opacity-90"
+            className="block w-full rounded-xl bg-[linear-gradient(135deg,#22d3ee_0%,#0ea5e9_48%,#2563eb_100%)] py-3.5 text-center text-sm font-semibold text-white shadow-xl shadow-cyan-500/30 transition-opacity hover:opacity-90"
           >
             Start Free
           </Link>

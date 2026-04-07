@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, FileText, Pencil, Plus, Search, Trash2, Upload, X } from "lucide-react";
 import { AppFooter } from "../components/AppFooter";
 import { PageHeader } from "../components/PageHeader";
@@ -122,6 +122,7 @@ export const Preparation = () => {
   const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [selectedNotePreviewUrl, setSelectedNotePreviewUrl] = useState("");
+  const noteViewerRef = useRef(null);
 
   const isAdmin =
     user?.role === "admin" && ADMIN_EMAILS.includes((user?.email || "").toLowerCase());
@@ -197,6 +198,21 @@ export const Preparation = () => {
       }
     };
   }, [selectedNote?.pdfDataUrl]);
+
+  useEffect(() => {
+    if (!selectedNote?._id) {
+      return;
+    }
+
+    const scrollTarget = window.setTimeout(() => {
+      noteViewerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 120);
+
+    return () => window.clearTimeout(scrollTarget);
+  }, [selectedNote?._id]);
 
   const filteredNotes = useMemo(
     () => allNotes.filter((note) => noteMatchesSearch(note, search)),
@@ -849,7 +865,10 @@ export const Preparation = () => {
                 </section>
               )}
 
-              <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 md:p-6">
+              <section
+                ref={noteViewerRef}
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 md:p-6"
+              >
                 {selectedNote ? (
                   <div className="space-y-5">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -963,7 +982,7 @@ export const Preparation = () => {
                       </div>
                       <iframe
                         title={selectedNote.title}
-                        src={selectedNotePreviewUrl}
+                        src={selectedNotePreviewUrl || undefined}
                         className="w-full h-[82vh] min-h-[720px] rounded-2xl bg-white"
                       />
                     </article>
@@ -1029,7 +1048,7 @@ export const Preparation = () => {
             <div className="flex-1 p-1 md:p-3">
               <iframe
                 title={`${selectedNote.title} full screen preview`}
-                src={selectedNotePreviewUrl}
+                src={selectedNotePreviewUrl || undefined}
                 className="h-full min-h-[80vh] w-full rounded-2xl bg-white"
               />
             </div>

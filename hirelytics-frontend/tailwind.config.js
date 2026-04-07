@@ -1,6 +1,9 @@
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   darkMode: "class",
+  future: {
+    disableColorOpacityUtilitiesByDefault: true,
+  },
   theme: {
     extend: {
       colors: {
@@ -25,5 +28,15 @@ export default {
       },
     },
   },
+  corePlugins: {
+    colorOpacity: false,
+  },
+  safelist: [
+    // Explicitly safe list common Tailwind utilities to prevent OKLch generation
+    { pattern: /^(bg|text|border)-(slate|teal)-(50|100|200|300|400|500|600|700|800|900)$/ },
+    { pattern: /^(hover|focus|dark):.*/ },
+  ],
   plugins: [],
 };
+
+
