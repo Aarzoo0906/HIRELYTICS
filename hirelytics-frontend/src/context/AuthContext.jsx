@@ -1,4 +1,5 @@
 import { createContext, useState, useContext, useEffect } from "react";
+import { API_BASE, parseApiResponse } from "../lib/api";
 import { formatDisplayName } from "../utils/name";
 
 const AuthContext = createContext(null);
@@ -74,9 +75,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [totalTimeSpentSeconds, setTotalTimeSpentSeconds] = useState(0);
-  const API_BASE =
-    import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:5000/api";
   const getStoredUser = () => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -108,7 +106,7 @@ export const AuthProvider = ({ children }) => {
           throw new Error("Session expired");
         }
 
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         const storedUser = getStoredUser();
         const userData = normalizeUserName({
           ...data.user,
@@ -240,11 +238,7 @@ export const AuthProvider = ({ children }) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data?.message || "Login failed");
-    }
+    const data = await parseApiResponse(response);
 
     const storedUser = getStoredUser();
     const nextUser = normalizeUserName({
@@ -273,11 +267,7 @@ export const AuthProvider = ({ children }) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
     });
-    const registerData = await registerResponse.json();
-
-    if (!registerResponse.ok) {
-      throw new Error(registerData?.message || "Registration failed");
-    }
+    await parseApiResponse(registerResponse);
 
     return login(email, password);
   };
@@ -308,11 +298,7 @@ export const AuthProvider = ({ children }) => {
       },
       body: JSON.stringify({ currentPassword, newPassword }),
     });
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data?.message || "Password change failed");
-    }
+    const data = await parseApiResponse(response);
 
     const updatedUser = {
       ...user,
@@ -374,7 +360,7 @@ export const AuthProvider = ({ children }) => {
       if (!response.ok) {
         console.error("Failed to save interview to backend");
       } else {
-        const data = await response.json();
+        const data = await parseApiResponse(response);
         console.log("Interview saved successfully:", data);
         if (typeof data?.totalScore === "number") {
           newInterview.score = data.totalScore;

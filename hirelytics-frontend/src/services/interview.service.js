@@ -1,6 +1,4 @@
-const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:5000/api";
+import { API_BASE } from "../lib/api";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");

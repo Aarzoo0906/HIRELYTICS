@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Copy, LoaderCircle, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE } from "../lib/api";
 
 const supportEmail = "Hirelytics.support@gmail.com";
 const isValidEmail = (value = "") => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 export const ContactSupportPanel = () => {
   const { user } = useAuth();
-  const API_BASE =
-    import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:5000/api";
   const [formData, setFormData] = useState({
     name: "",
     email: "",

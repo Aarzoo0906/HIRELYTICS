@@ -12,11 +12,8 @@ import {
   AchievementCard,
   LeaderboardRow,
 } from "../components/GamificationComponents";
+import { API_BASE } from "../lib/api";
 import { formatDisplayName } from "../utils/name";
-
-const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:5000/api";
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("token");

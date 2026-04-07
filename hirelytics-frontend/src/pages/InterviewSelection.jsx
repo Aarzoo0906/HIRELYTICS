@@ -5,6 +5,7 @@ import { PageClock } from "../components/PageClock";
 import { PageHeader } from "../components/PageHeader";
 import { Sidebar } from "../components/Sidebar";
 import { HR_INTERVIEW_TOPICS, TECHNICAL_INTERVIEW_TOPICS } from "../data/topicCatalog";
+import { API_BASE } from "../lib/api";
 import {
   Briefcase,
   Users,
@@ -73,19 +74,15 @@ export const InterviewSelection = () => {
     setIsGenerating(true);
     setGenerationError("");
 
-    const apiBaseUrl =
-      import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-      "http://localhost:5000/api";
-
     try {
       console.log("Starting interview with:", {
         type: selectedType,
         difficulty: selectedDifficulty,
         topic: selectedTopic,
-        apiUrl: `${apiBaseUrl}/interview/generate-questions`,
+        apiUrl: `${API_BASE}/interview/generate-questions`,
       });
 
-      const response = await fetch(`${apiBaseUrl}/interview/generate-questions`, {
+      const response = await fetch(`${API_BASE}/interview/generate-questions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -409,8 +406,8 @@ export const InterviewSelection = () => {
               <details className="mt-3 text-xs text-red-500 dark:text-red-400 cursor-pointer">
                 <summary className="font-semibold">Debug Info</summary>
                 <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/40 rounded">
-                  <p>API Base: {import.meta.env.VITE_API_URL || "http://localhost:5000/api"}</p>
-                  <p>Backend: http://localhost:5000/api/interview/generate-questions</p>
+                  <p>API Base: {API_BASE}</p>
+                  <p>Backend: {`${API_BASE}/interview/generate-questions`}</p>
                   <p>Please ensure backend is running</p>
                 </div>
               </details>

@@ -16,6 +16,7 @@ import jsPDF from "jspdf";
 import { useState, useEffect, useMemo } from "react";
 import { InterviewResultCard } from "../components/GamificationComponents";
 import { useAuth } from "../context/AuthContext";
+import { API_BASE } from "../lib/api";
 import { analyzeInterviewPerformance } from "../utils/interviewAnalysis";
 
 export const Result = () => {
@@ -33,10 +34,6 @@ export const Result = () => {
   const [shareSuccess, setShareSuccess] = useState(false);
   const [gamificationData, setGamificationData] = useState(null);
   const { user, updateUser } = useAuth();
-
-  const API_BASE =
-    import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:5000/api";
 
   const getPerformanceLevel = (score) => {
     if (score >= 80)

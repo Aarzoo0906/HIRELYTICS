@@ -9,6 +9,7 @@ import { getValidImageSrc } from "../utils/profileImage";
 import { formatDuration } from "../utils/time";
 import { useNavigate } from "react-router-dom";
 import { formatDisplayName } from "../utils/name";
+import { API_BASE } from "../lib/api";
 import {
   Camera,
   Trash2,
@@ -120,9 +121,6 @@ export const Settings = () => {
       setAdminLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const apiBase =
-          import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-          "http://localhost:5000/api";
         const params = new URLSearchParams();
 
         if (adminSearch.trim()) {
@@ -130,7 +128,7 @@ export const Settings = () => {
         }
 
         const response = await fetch(
-          `${apiBase}/admin/users${params.toString() ? `?${params.toString()}` : ""}`,
+          `${API_BASE}/admin/users${params.toString() ? `?${params.toString()}` : ""}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -303,11 +301,7 @@ export const Settings = () => {
     try {
       setAnnouncementLoading(true);
       const token = localStorage.getItem("token");
-      const apiBase =
-        import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-        "http://localhost:5000/api";
-
-      const response = await fetch(`${apiBase}/admin/broadcast`, {
+      const response = await fetch(`${API_BASE}/admin/broadcast`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

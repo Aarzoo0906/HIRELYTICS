@@ -1,8 +1,5 @@
 import axios from "axios";
-
-const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:5000/api";
+import { API_BASE } from "../lib/api";
 
 const voiceApi = axios.create({
   baseURL: `${API_BASE}/voice`,

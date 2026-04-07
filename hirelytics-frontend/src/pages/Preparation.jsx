@@ -10,10 +10,7 @@ import {
   PREPARATION_CATEGORY_MAP,
   PREPARATION_CATEGORY_NAMES,
 } from "../data/topicCatalog";
-
-const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:5000/api";
+import { API_BASE } from "../lib/api";
 
 const ADMIN_EMAILS = [
   "adityakanaujiya81@gmail.com",

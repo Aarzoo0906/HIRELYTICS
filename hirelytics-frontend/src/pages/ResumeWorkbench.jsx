@@ -20,10 +20,7 @@ import { PageClock } from "../components/PageClock";
 import { PageHeader } from "../components/PageHeader";
 import { ResumeTemplatePreview } from "../components/ResumeTemplatePreview";
 import { Sidebar } from "../components/Sidebar";
-
-const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:5000/api";
+import { API_BASE } from "../lib/api";
 
 const scorePalette = (score) => {
   if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
