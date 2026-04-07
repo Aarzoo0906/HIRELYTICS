@@ -42,6 +42,14 @@ app.use("/api/voice", voiceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/contact", contactRoutes);
 
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Hirelytics backend is healthy",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health check
 app.get("/", (req, res) => {
   res.send("Hirelytics API is running 🚀");
