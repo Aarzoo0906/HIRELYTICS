@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, CheckCheck, Sparkles } from "lucide-react";
+import { Bell, CheckCheck, Sparkles, Trash2, X } from "lucide-react";
 import { notificationService } from "../services/notification.service";
 
 const typeTheme = {
@@ -85,6 +85,16 @@ export const NotificationBell = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    try {
+      await notificationService.clearAll();
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Failed to clear notifications:", error);
+    }
+  };
+
   return (
     <div className="relative">
       <button
@@ -101,65 +111,99 @@ export const NotificationBell = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-14 z-50 w-[min(92vw,380px)] overflow-hidden rounded-3xl border border-cyan-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,249,255,0.95)_100%)] shadow-2xl backdrop-blur-md dark:border-cyan-400/20 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.98)_0%,rgba(8,47,73,0.96)_100%)]">
-          <div className="flex items-center justify-between border-b border-cyan-100 px-4 py-4 dark:border-cyan-400/15">
-            <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-cyan-600 dark:text-cyan-300" />
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                Notifications
-              </h3>
+        <>
+          <button
+            type="button"
+            aria-label="Close notifications"
+            onClick={() => setIsOpen(false)}
+            className="fixed inset-0 z-[60] bg-slate-950/20 backdrop-blur-[1px]"
+          />
+          <div className="fixed right-4 top-20 z-[70] w-[min(92vw,420px)] overflow-hidden rounded-[1.8rem] border border-cyan-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,249,255,0.95)_100%)] shadow-[0_28px_90px_-32px_rgba(8,145,178,0.42)] backdrop-blur-md dark:border-cyan-400/20 dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.98)_0%,rgba(8,47,73,0.96)_100%)] md:right-8">
+            <div className="flex items-start justify-between gap-4 border-b border-cyan-100 px-5 py-4 dark:border-cyan-400/15">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-cyan-600 dark:text-cyan-300" />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Notifications
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Stay updated with admin announcements and activity.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <X size={16} />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleMarkAllRead}
-              className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
-            >
-              <CheckCheck size={14} />
-              Read all
-            </button>
-          </div>
 
-          <div className="max-h-[420px] overflow-y-auto p-3">
-            {loading ? (
-              <p className="p-4 text-sm text-slate-500 dark:text-slate-400">
-                Loading notifications...
-              </p>
-            ) : sortedNotifications.length ? (
-              <div className="space-y-3">
-                {sortedNotifications.map((notification) => (
-                  <button
-                    key={notification._id}
-                    type="button"
-                    onClick={() => handleMarkRead(notification)}
-                    className={`block w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
-                      typeTheme[notification.type] || typeTheme.info
-                    } ${notification.isRead ? "opacity-80" : "ring-2 ring-rose-300/50 dark:ring-rose-700/40"}`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold">{notification.title}</p>
-                        <p className="mt-1 text-xs leading-6 opacity-90">
-                          {notification.message}
-                        </p>
+            <div className="flex flex-wrap items-center gap-2 border-b border-cyan-100 px-5 py-3 dark:border-cyan-400/15">
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <CheckCheck size={14} />
+                Read all
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300"
+              >
+                <Trash2 size={14} />
+                Clear all
+              </button>
+              <span className="ml-auto text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                {unreadCount} unread
+              </span>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto p-3">
+              {loading ? (
+                <p className="p-4 text-sm text-slate-500 dark:text-slate-400">
+                  Loading notifications...
+                </p>
+              ) : sortedNotifications.length ? (
+                <div className="space-y-3">
+                  {sortedNotifications.map((notification) => (
+                    <button
+                      key={notification._id}
+                      type="button"
+                      onClick={() => handleMarkRead(notification)}
+                      className={`block w-full rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${
+                        typeTheme[notification.type] || typeTheme.info
+                      } ${notification.isRead ? "opacity-80" : "ring-2 ring-rose-300/50 dark:ring-rose-700/40"}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold">{notification.title}</p>
+                          <p className="mt-1 text-xs leading-6 opacity-90">
+                            {notification.message}
+                          </p>
+                        </div>
+                        {!notification.isRead && (
+                          <span className="mt-1 h-2.5 w-2.5 rounded-full bg-teal-500" />
+                        )}
                       </div>
-                      {!notification.isRead && (
-                        <span className="mt-1 h-2.5 w-2.5 rounded-full bg-teal-500" />
-                      )}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] opacity-75">
-                      <span>{notification.category}</span>
-                      <span>{formatTimeAgo(notification.createdAt)}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                No notifications yet. Admin updates will appear here.
-              </div>
-            )}
+                      <div className="mt-3 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.18em] opacity-75">
+                        <span>{notification.category}</span>
+                        <span>{formatTimeAgo(notification.createdAt)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  No notifications yet. Admin updates will appear here.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
