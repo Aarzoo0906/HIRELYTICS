@@ -27,6 +27,8 @@ const getRecipients = () => ({
 const isMailConfigured = () =>
   Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
 
+const isResendConfigured = () => Boolean(process.env.RESEND_API_KEY);
+
 const createTransporter = () =>
   nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -53,6 +55,90 @@ const escapeHtml = (value = "") =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+const sendWithResendApi = async ({
+  name,
+  email,
+  subject,
+  message,
+  source,
+  recipients,
+  safeName,
+  safeEmail,
+  safeSubject,
+  safeMessage,
+}) => {
+  const fromAddress =
+    process.env.RESEND_FROM_EMAIL ||
+    process.env.SMTP_USER ||
+    "onboarding@resend.dev";
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+    },
+    body: JSON.stringify({
+      from: `Hirelytics Support <${fromAddress}>`,
+      to: [recipients.to],
+      ...(recipients.cc.length ? { cc: recipients.cc } : {}),
+      reply_to: email,
+      subject: `[Hirelytics] ${subject}`,
+      text: [
+        `Name: ${name}`,
+        `Email: ${email}`,
+        `Source: ${source}`,
+        "",
+        "Message:",
+        message,
+      ].join("\n"),
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+          <h2 style="margin-bottom: 8px;">New Hirelytics Support Message</h2>
+          <p style="margin: 0 0 16px;">
+            This message was submitted from <strong>${escapeHtml(source)}</strong>.
+          </p>
+          <table style="border-collapse: collapse; width: 100%; max-width: 720px; margin-bottom: 20px;">
+            <tr>
+              <td style="padding: 10px; border: 1px solid #cbd5e1; background: #f8fafc; width: 180px;"><strong>Name</strong></td>
+              <td style="padding: 10px; border: 1px solid #cbd5e1;">${safeName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #cbd5e1; background: #f8fafc;"><strong>Email</strong></td>
+              <td style="padding: 10px; border: 1px solid #cbd5e1;">${safeEmail}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border: 1px solid #cbd5e1; background: #f8fafc;"><strong>Subject</strong></td>
+              <td style="padding: 10px; border: 1px solid #cbd5e1;">${safeSubject}</td>
+            </tr>
+          </table>
+          <div style="padding: 16px; border: 1px solid #cbd5e1; border-radius: 12px; background: #ffffff;">
+            <p style="margin-top: 0; font-weight: bold;">Message</p>
+            <p style="margin-bottom: 0;">${safeMessage}</p>
+          </div>
+        </div>
+      `,
+    }),
+  });
+
+  const raw = await response.text();
+  let data = {};
+
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = { message: raw };
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ||
+        data?.error ||
+        `Resend API request failed with status ${response.status}`,
+    );
+  }
+};
+
 export const sendSupportEmail = async ({
   name,
   email,
@@ -60,13 +146,12 @@ export const sendSupportEmail = async ({
   message,
   source = "Hirelytics settings",
 }) => {
-  if (!isMailConfigured()) {
+  if (!isResendConfigured() && !isMailConfigured()) {
     throw new Error(
-      "Email service is not configured. Set SMTP_USER and SMTP_PASS in the backend .env file.",
+      "Email service is not configured. Set RESEND_API_KEY or SMTP credentials in the backend environment.",
     );
   }
 
-  const transporter = createTransporter();
   const recipients = getRecipients();
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);
@@ -74,6 +159,29 @@ export const sendSupportEmail = async ({
   const safeMessage = escapeHtml(message).replace(/\n/g, "<br />");
 
   try {
+    if (isResendConfigured()) {
+      await sendWithResendApi({
+        name,
+        email,
+        subject,
+        message,
+        source,
+        recipients,
+        safeName,
+        safeEmail,
+        safeSubject,
+        safeMessage,
+      });
+
+      return {
+        supportEmail: primarySupportEmail,
+        developerEmails: ccEmails,
+        deliveryProvider: "resend",
+      };
+    }
+
+    const transporter = createTransporter();
+
     await transporter.sendMail({
       from: `"Hirelytics Support" <${process.env.SMTP_USER}>`,
       to: recipients.to,
@@ -138,5 +246,6 @@ export const sendSupportEmail = async ({
   return {
     supportEmail: primarySupportEmail,
     developerEmails: ccEmails,
+    deliveryProvider: "smtp",
   };
 };
