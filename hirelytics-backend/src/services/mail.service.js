@@ -42,9 +42,9 @@ const buildTransportOptions = (overrides = {}) => ({
     typeof overrides.secure === "boolean"
       ? !overrides.secure
       : process.env.SMTP_SECURE !== "true",
-  connectionTimeout: 18000,
-  greetingTimeout: 18000,
-  socketTimeout: 30000,
+  connectionTimeout: 6500,
+  greetingTimeout: 6500,
+  socketTimeout: 9000,
   tls: {
     servername: process.env.SMTP_HOST || "smtp.gmail.com",
   },

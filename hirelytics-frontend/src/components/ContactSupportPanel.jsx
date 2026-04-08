@@ -67,7 +67,7 @@ export const ContactSupportPanel = () => {
           ...formData,
           source: "Hirelytics settings contact section",
         }),
-      }, 16000);
+      }, 22000);
 
       if (!data.success) {
         throw new Error(data.message || "Unable to send the support email.");
