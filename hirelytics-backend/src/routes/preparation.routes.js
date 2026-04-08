@@ -3,6 +3,7 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 import adminMiddleware from "../middlewares/admin.middleware.js";
 import {
   getNotes,
+  getNoteById,
   createNote,
   updateNote,
   deleteNote,
@@ -12,6 +13,7 @@ import {
 const router = express.Router();
 
 router.get("/notes", authMiddleware, getNotes);
+router.get("/notes/:id", authMiddleware, getNoteById);
 router.post("/notes", authMiddleware, adminMiddleware, createNote);
 router.put("/notes/:id", authMiddleware, adminMiddleware, updateNote);
 router.delete("/notes/:id", authMiddleware, adminMiddleware, deleteNote);

@@ -10,7 +10,7 @@ import {
   PREPARATION_CATEGORY_MAP,
   PREPARATION_CATEGORY_NAMES,
 } from "../data/topicCatalog";
-import { API_BASE } from "../lib/api";
+import { API_BASE, fetchJson } from "../lib/api";
 
 const ADMIN_EMAILS = [
   "adityakanaujiya81@gmail.com",
@@ -119,6 +119,7 @@ export const Preparation = () => {
   const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [selectedNotePreviewUrl, setSelectedNotePreviewUrl] = useState("");
+  const [noteDetailsLoading, setNoteDetailsLoading] = useState(false);
   const noteViewerRef = useRef(null);
 
   const isAdmin =
@@ -133,19 +134,15 @@ export const Preparation = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      const data = await fetchJson(
         `${API_BASE}/preparation/notes`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         },
+        15000,
       );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to load notes");
-      }
 
       setAllNotes(data);
       setSelectedNote((current) => {
@@ -173,12 +170,39 @@ export const Preparation = () => {
   }, []);
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      fetchNotes();
-    }, 5000);
+    const loadSelectedNote = async () => {
+      if (!selectedNote?._id) {
+        return;
+      }
 
-    return () => clearInterval(intervalId);
-  }, []);
+      setNoteDetailsLoading(true);
+
+      try {
+        const token = localStorage.getItem("token");
+        const detailedNote = await fetchJson(
+          `${API_BASE}/preparation/notes/${selectedNote._id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+          20000,
+        );
+
+        setSelectedNote((current) =>
+          current?._id === detailedNote._id ? detailedNote : current,
+        );
+      } catch (detailError) {
+        setError(detailError.message || "Failed to load the selected PDF note.");
+      } finally {
+        setNoteDetailsLoading(false);
+      }
+    };
+
+    if (!selectedNote?.pdfDataUrl) {
+      loadSelectedNote();
+    }
+  }, [selectedNote?._id]);
 
   useEffect(() => {
     if (!selectedNote?.pdfDataUrl) {
@@ -362,19 +386,14 @@ export const Preparation = () => {
         ? `${API_BASE}/preparation/notes/${editingNoteId}`
         : `${API_BASE}/preparation/notes`;
 
-      const response = await fetch(endpoint, {
+      const data = await fetchJson(endpoint, {
         method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to save note");
-      }
+      }, 30000);
 
       setSuccess(
         editingNoteId
@@ -408,17 +427,12 @@ export const Preparation = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API_BASE}/preparation/notes/${noteId}`, {
+      const data = await fetchJson(`${API_BASE}/preparation/notes/${noteId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to delete PDF note");
-      }
+      }, 15000);
 
       setSuccess("PDF note deleted successfully");
       setAllNotes((currentNotes) => {
@@ -459,7 +473,7 @@ export const Preparation = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      const data = await fetchJson(
         `${API_BASE}/preparation/notes/${selectedNote._id}/complete`,
         {
           method: "POST",
@@ -467,12 +481,8 @@ export const Preparation = () => {
             Authorization: `Bearer ${token}`,
           },
         },
+        15000,
       );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to mark note as completed");
-      }
 
       if (data.alreadyCompleted) {
         setSuccess("You already completed this note.");
@@ -968,7 +978,11 @@ export const Preparation = () => {
                             if (selectedNotePreviewUrl) {
                               setIsPdfViewerOpen(true);
                             } else {
-                              setError("This PDF preview is not available right now. Try reopening the note.");
+                              setError(
+                                noteDetailsLoading
+                                  ? "PDF is still loading. Please wait a moment."
+                                  : "This PDF preview is not available right now. Try reopening the note.",
+                              );
                             }
                           }}
                           className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white"
@@ -982,6 +996,11 @@ export const Preparation = () => {
                         src={selectedNotePreviewUrl || undefined}
                         className="w-full h-[82vh] min-h-[720px] rounded-2xl bg-white"
                       />
+                      {noteDetailsLoading && (
+                        <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                          Loading PDF preview...
+                        </p>
+                      )}
                     </article>
                   </div>
                 ) : (

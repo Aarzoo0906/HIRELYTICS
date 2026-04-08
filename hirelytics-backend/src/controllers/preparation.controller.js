@@ -25,6 +25,19 @@ const normalizeCategory = (category = "") =>
 const presentCategory = (category = "") =>
   `${category}`.trim() === "DBMS" ? "SQL" : `${category}`.trim();
 
+const presentNote = (note, { includePdf = false } = {}) => {
+  const plain = note.toObject ? note.toObject() : { ...note };
+
+  if (!includePdf) {
+    delete plain.pdfDataUrl;
+  }
+
+  return {
+    ...plain,
+    category: presentCategory(plain.category),
+  };
+};
+
 export const getNotes = async (req, res) => {
   try {
     const { category, search } = req.query;
@@ -48,18 +61,30 @@ export const getNotes = async (req, res) => {
     }
 
     const notes = await PreparationNote.find(filter)
+      .select("-pdfDataUrl")
       .sort({ updatedAt: -1 })
       .populate("createdBy", "name email")
       .populate("updatedBy", "name email");
 
-    res.json(
-      notes.map((note) => ({
-        ...note.toObject(),
-        category: presentCategory(note.category),
-      })),
-    );
+    res.json(notes.map((note) => presentNote(note)));
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getNoteById = async (req, res) => {
+  try {
+    const note = await PreparationNote.findById(req.params.id)
+      .populate("createdBy", "name email")
+      .populate("updatedBy", "name email");
+
+    if (!note) {
+      return res.status(404).json({ message: "Note not found" });
+    }
+
+    return res.json(presentNote(note, { includePdf: true }));
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -101,10 +126,7 @@ export const createNote = async (req, res) => {
       createdBy: req.userId,
     });
 
-    res.status(201).json({
-      ...populatedNote.toObject(),
-      category: presentCategory(populatedNote.category),
-    });
+    res.status(201).json(presentNote(populatedNote));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -149,10 +171,7 @@ export const updateNote = async (req, res) => {
       createdBy: req.userId,
     });
 
-    res.json({
-      ...populatedNote.toObject(),
-      category: presentCategory(populatedNote.category),
-    });
+    res.json(presentNote(populatedNote));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

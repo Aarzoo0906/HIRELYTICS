@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, Copy, LoaderCircle, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { API_BASE } from "../lib/api";
+import { API_BASE, fetchJson } from "../lib/api";
 
 const supportEmail = "Hirelytics.support@gmail.com";
 const isValidEmail = (value = "") => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -58,7 +58,7 @@ export const ContactSupportPanel = () => {
     setMailStatus({ type: "", message: "" });
 
     try {
-      const response = await fetch(`${API_BASE}/contact/support`, {
+      const data = await fetchJson(`${API_BASE}/contact/support`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,10 +67,9 @@ export const ContactSupportPanel = () => {
           ...formData,
           source: "Hirelytics settings contact section",
         }),
-      });
-      const data = await response.json();
+      }, 16000);
 
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.message || "Unable to send the support email.");
       }
 
