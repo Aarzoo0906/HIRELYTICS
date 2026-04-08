@@ -27,6 +27,9 @@ const emptyForm = {
   pdfSize: 0,
 };
 
+const MAX_PDF_SIZE_BYTES = 8 * 1024 * 1024;
+const NOTE_UPLOAD_TIMEOUT_MS = 120000;
+
 const CATEGORY_ICONS = Object.fromEntries(
   PREPARATION_CATEGORIES.map((category) => [
     category.name,
@@ -343,8 +346,8 @@ export const Preparation = () => {
       return;
     }
 
-    if (file.size > 15 * 1024 * 1024) {
-      setError("PDF size should be under 15 MB.");
+    if (file.size > MAX_PDF_SIZE_BYTES) {
+      setError("PDF size should be 8 MB or smaller for reliable upload.");
       return;
     }
 
@@ -386,14 +389,18 @@ export const Preparation = () => {
         ? `${API_BASE}/preparation/notes/${editingNoteId}`
         : `${API_BASE}/preparation/notes`;
 
-      const data = await fetchJson(endpoint, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const data = await fetchJson(
+        endpoint,
+        {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formData),
         },
-        body: JSON.stringify(formData),
-      }, 30000);
+        NOTE_UPLOAD_TIMEOUT_MS,
+      );
 
       setSuccess(
         editingNoteId

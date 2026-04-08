@@ -199,8 +199,10 @@ export const VoicePractice = () => {
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
   const stopFallbackTimerRef = useRef(null);
+  const recognitionRestartTimerRef = useRef(null);
   const shouldAnalyzeOnStopRef = useRef(false);
   const stopRequestedRef = useRef(false);
+  const shouldKeepListeningRef = useRef(false);
   const finalTranscriptRef = useRef("");
   const confidenceSamplesRef = useRef([]);
 
@@ -301,6 +303,10 @@ export const VoicePractice = () => {
       window.clearTimeout(stopFallbackTimerRef.current);
       stopFallbackTimerRef.current = null;
     }
+    if (recognitionRestartTimerRef.current) {
+      window.clearTimeout(recognitionRestartTimerRef.current);
+      recognitionRestartTimerRef.current = null;
+    }
 
     setTranscript("");
     setInterimTranscript("");
@@ -311,6 +317,7 @@ export const VoicePractice = () => {
     setIsStopping(false);
     startTimeRef.current = null;
     stopRequestedRef.current = false;
+    shouldKeepListeningRef.current = false;
     finalTranscriptRef.current = "";
     confidenceSamplesRef.current = [];
   };
@@ -362,11 +369,13 @@ export const VoicePractice = () => {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       setIsRecording(true);
       setIsStopping(false);
       stopRequestedRef.current = false;
+      shouldKeepListeningRef.current = true;
       setError("");
     };
 
@@ -404,6 +413,19 @@ export const VoicePractice = () => {
 
     recognition.onerror = (event) => {
       setIsStopping(false);
+
+      if (stopRequestedRef.current && event.error === "aborted") {
+        return;
+      }
+
+      if (event.error === "no-speech" && shouldKeepListeningRef.current) {
+        return;
+      }
+
+      if (["not-allowed", "audio-capture"].includes(event.error)) {
+        shouldKeepListeningRef.current = false;
+      }
+
       setError(getErrorMessage(event.error));
     };
 
@@ -415,6 +437,17 @@ export const VoicePractice = () => {
       if (stopFallbackTimerRef.current) {
         window.clearTimeout(stopFallbackTimerRef.current);
         stopFallbackTimerRef.current = null;
+      }
+
+      if (shouldKeepListeningRef.current && !stopRequestedRef.current) {
+        recognitionRestartTimerRef.current = window.setTimeout(() => {
+          try {
+            recognition.start();
+          } catch {
+            setError("Microphone recording restarted. Please keep speaking clearly.");
+          }
+        }, 250);
+        return;
       }
 
       const finalDurationSeconds = startTimeRef.current
@@ -430,6 +463,8 @@ export const VoicePractice = () => {
         timerRef.current = null;
       }
       startTimeRef.current = null;
+      shouldKeepListeningRef.current = false;
+      stopRequestedRef.current = false;
 
       if (shouldAnalyzeOnStopRef.current) {
         shouldAnalyzeOnStopRef.current = false;
@@ -456,6 +491,10 @@ export const VoicePractice = () => {
       if (stopFallbackTimerRef.current) {
         window.clearTimeout(stopFallbackTimerRef.current);
       }
+      if (recognitionRestartTimerRef.current) {
+        window.clearTimeout(recognitionRestartTimerRef.current);
+      }
+      shouldKeepListeningRef.current = false;
       recognition.abort();
     };
   }, []);
@@ -488,6 +527,7 @@ export const VoicePractice = () => {
 
     resetPracticeState();
     shouldAnalyzeOnStopRef.current = false;
+    shouldKeepListeningRef.current = true;
     startTimeRef.current = Date.now();
     timerRef.current = window.setInterval(() => {
       setDurationSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000));
@@ -507,6 +547,7 @@ export const VoicePractice = () => {
 
     shouldAnalyzeOnStopRef.current = true;
     stopRequestedRef.current = true;
+    shouldKeepListeningRef.current = false;
     setIsStopping(true);
 
     if (timerRef.current) {

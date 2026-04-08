@@ -2,6 +2,23 @@ import PreparationNote from "../models/PreparationNote.js";
 import User from "../models/User.js";
 import { broadcastNotificationToAllUsers } from "../services/notification.service.js";
 
+const MAX_PDF_SIZE_BYTES = 8 * 1024 * 1024;
+
+const estimateDataUrlBytes = (pdfDataUrl = "") => {
+  const [, base64 = ""] = `${pdfDataUrl}`.split(",");
+  if (!base64) {
+    return 0;
+  }
+
+  return Math.floor((base64.length * 3) / 4);
+};
+
+const notifyPreparationUpdate = (payload) => {
+  broadcastNotificationToAllUsers(payload).catch((error) => {
+    console.error("Preparation notification failed:", error.message);
+  });
+};
+
 const parseTags = (tags = []) => {
   if (Array.isArray(tags)) {
     return tags
@@ -101,13 +118,20 @@ export const createNote = async (req, res) => {
       return res.status(400).json({ message: "Only PDF files are allowed" });
     }
 
+    const effectivePdfSize = Number(pdfSize) || estimateDataUrlBytes(pdfDataUrl);
+    if (effectivePdfSize > MAX_PDF_SIZE_BYTES) {
+      return res.status(413).json({
+        message: "PDF size should be 8 MB or smaller for reliable upload.",
+      });
+    }
+
     const note = await PreparationNote.create({
       title,
       category: normalizeCategory(category),
       summary,
       pdfName,
       pdfDataUrl,
-      pdfSize,
+      pdfSize: effectivePdfSize,
       tags: parseTags(tags),
       createdBy: req.userId,
       updatedBy: req.userId,
@@ -117,7 +141,7 @@ export const createNote = async (req, res) => {
       .populate("createdBy", "name email")
       .populate("updatedBy", "name email");
 
-    await broadcastNotificationToAllUsers({
+    notifyPreparationUpdate({
       title: "New Study Note Added",
       message: `Admin added a new preparation note in ${presentCategory(note.category)}: ${note.title}`,
       type: "announcement",
@@ -150,9 +174,16 @@ export const updateNote = async (req, res) => {
         return res.status(400).json({ message: "Only PDF files are allowed" });
       }
 
+      const effectivePdfSize = Number(pdfSize) || estimateDataUrlBytes(pdfDataUrl);
+      if (effectivePdfSize > MAX_PDF_SIZE_BYTES) {
+        return res.status(413).json({
+          message: "PDF size should be 8 MB or smaller for reliable upload.",
+        });
+      }
+
       note.pdfName = pdfName;
       note.pdfDataUrl = pdfDataUrl;
-      note.pdfSize = pdfSize;
+      note.pdfSize = effectivePdfSize;
     }
     note.tags = parseTags(tags);
     note.updatedBy = req.userId;
@@ -162,7 +193,7 @@ export const updateNote = async (req, res) => {
       .populate("createdBy", "name email")
       .populate("updatedBy", "name email");
 
-    await broadcastNotificationToAllUsers({
+    notifyPreparationUpdate({
       title: "Preparation Note Updated",
       message: `Admin updated ${note.title}. Check the latest study material.`,
       type: "announcement",
@@ -184,7 +215,7 @@ export const deleteNote = async (req, res) => {
       return res.status(404).json({ message: "Note not found" });
     }
 
-    await broadcastNotificationToAllUsers({
+    notifyPreparationUpdate({
       title: "Study Material Changed",
       message: `Admin removed ${note.title} from the preparation library.`,
       type: "warning",
