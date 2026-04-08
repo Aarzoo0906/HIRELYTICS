@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { callGeminiAPI } from "../services/ai.service.js";
 
 const FILLER_WORDS = ["um", "uh", "like", "you know", "actually", "basically"];
 
@@ -85,6 +85,18 @@ const getConfidenceBand = (value) => {
 const getBandFeedback = (value) => (value >= 7 ? "Good" : "Needs Improvement");
 
 const toStars = (value) => "⭐".repeat(clamp(Math.round(value), 1, 5));
+
+const normalizeBandLabel = (value, fallback) => {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (Number.isFinite(Number(value))) {
+    return fallback(Number(value));
+  }
+
+  return fallback(0);
+};
 
 const buildFallbackAnalysis = ({
   transcript,
@@ -178,19 +190,20 @@ const buildFallbackAnalysis = ({
   };
 };
 
-const buildOpenAIClient = () => {
-  if (!process.env.OPENAI_API_KEY) {
-    return null;
+const parseJsonFromModel = (rawText = "") => {
+  const fencedMatch = rawText.match(/```json\s*([\s\S]+?)```/i);
+  const candidate = fencedMatch?.[1] || rawText;
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+
+  if (start === -1 || end === -1) {
+    throw new Error("Voice analysis response did not contain JSON.");
   }
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  return JSON.parse(candidate.slice(start, end + 1));
 };
 
 const getAiAnalysis = async (payload) => {
-  const client = buildOpenAIClient();
-  if (!client) {
-    return null;
-  }
-
   const prompt = `
 Analyze this voice-practice transcript for an interview communication exercise.
 Return strict JSON with keys:
@@ -206,17 +219,13 @@ Prompt shown to student:
 ${payload.questionOrParagraph}
 `;
 
-  const response = await client.responses.create({
-    model: "gpt-4.1-mini",
-    input: prompt,
-  });
-
-  const text = response.output_text?.trim();
+  const data = await callGeminiAPI([{ role: "user", content: prompt }], 500, 0.2);
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
   if (!text) {
     return null;
   }
 
-  return JSON.parse(text);
+  return parseJsonFromModel(text);
 };
 
 export const analyzeVoiceTranscript = async (payload) => {
@@ -231,9 +240,9 @@ export const analyzeVoiceTranscript = async (payload) => {
     return {
       ...fallback,
       score: roundToOneDecimal(clamp(Number(aiAnalysis.score) || fallback.score, 0, 10)),
-      grammar: aiAnalysis.grammar || fallback.grammar,
-      pronunciation: aiAnalysis.pronunciation || fallback.pronunciation,
-      confidence: aiAnalysis.confidence || fallback.confidence,
+      grammar: normalizeBandLabel(aiAnalysis.grammar, getBandFeedback),
+      pronunciation: normalizeBandLabel(aiAnalysis.pronunciation, getBandFeedback),
+      confidence: normalizeBandLabel(aiAnalysis.confidence, getConfidenceBand),
       detectedIssues: Array.isArray(aiAnalysis.detectedIssues)
         ? aiAnalysis.detectedIssues
         : fallback.detectedIssues,
@@ -241,8 +250,7 @@ export const analyzeVoiceTranscript = async (payload) => {
         ? aiAnalysis.suggestions
         : fallback.suggestions,
     };
-  } catch (error) {
-    console.error("Voice AI analysis fallback triggered:", error.message);
+  } catch {
     return fallback;
   }
 };
