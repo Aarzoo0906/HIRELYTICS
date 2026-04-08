@@ -29,11 +29,16 @@ const isMailConfigured = () =>
 
 const createTransporter = () =>
   nodemailer.createTransport({
-    service: process.env.SMTP_SERVICE || "gmail",
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT || (process.env.SMTP_SECURE === "true" ? 465 : 587)),
     secure: process.env.SMTP_SECURE === "true",
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
+    requireTLS: process.env.SMTP_SECURE !== "true",
+    connectionTimeout: 12000,
+    greetingTimeout: 12000,
+    socketTimeout: 20000,
+    tls: {
+      servername: process.env.SMTP_HOST || "smtp.gmail.com",
+    },
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -114,6 +119,16 @@ export const sendSupportEmail = async ({
     if (error?.code === "EAUTH") {
       throw new Error(
         "Gmail rejected the login for the support mailbox. Use a valid Gmail App Password in SMTP_PASS for Hirelytics.support@gmail.com.",
+      );
+    }
+
+    if (
+      error?.code === "ETIMEDOUT" ||
+      error?.code === "ESOCKET" ||
+      `${error?.message || ""}`.toLowerCase().includes("timeout")
+    ) {
+      throw new Error(
+        "SMTP connection timed out. On Render, set SMTP_HOST=smtp.gmail.com, SMTP_PORT=587, SMTP_SECURE=false, and use a valid Gmail App Password in SMTP_PASS.",
       );
     }
 
